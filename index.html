@@ -249,30 +249,16 @@
         <div class="modal-card">
             <button class="modal-close" onclick="game.closePayModal()">✕</button>
             <div class="modal-title" id="payTitle">Оплата</div>
-            <div class="modal-subtitle" id="paySubtitle">Скопируйте реквизиты и переведите</div>
-
+            <div class="modal-subtitle" id="paySubtitle">Выберите способ</div>
             <div class="pay-detail">
                 <div class="pay-row"><span class="label">Товар</span><span class="value" id="payItem">—</span></div>
                 <div class="pay-row"><span class="label">Сумма</span><span class="value" id="payAmount">—</span></div>
-                <div class="pay-row" id="payAddressRow">
-                    <span class="label">Адрес</span>
-                    <span class="value address" id="payAddress">—</span>
-                </div>
+                <div class="pay-row" id="payAddressRow"><span class="label">Адрес</span><span class="value address" id="payAddress">—</span></div>
             </div>
-
-            <div class="pay-comment" id="payComment" style="display:none;">
-                Comment: <span id="payCommentText">OMNI_123</span>
-            </div>
-
-            <div style="display:flex; gap:8px; margin-bottom:12px;">
-                <button class="copy-btn" style="flex:1;" onclick="game.copyPayAddress()">📋 Адрес</button>
-                <button class="copy-btn" style="flex:1;" onclick="game.copyPayComment()">📋 Comment</button>
-            </div>
-
+            <div class="pay-comment" id="payComment" style="display:none;">Comment: OMNI_123</div>
             <div class="pay-actions">
-                <button class="pay-btn" id="payOpenWalletBtn" onclick="game.openPayWallet()">💎 Открыть @wallet</button>
-                <button class="pay-btn gold" onclick="game.confirmPayment()">✅ Я оплатил — проверить</button>
-                <button class="pay-btn secondary" onclick="game.closePayModal()">❌ Отмена</button>
+                <button class="pay-btn" id="payPrimaryBtn" onclick="game.confirmPayment()">Оплатить</button>
+                <button class="pay-btn secondary" onclick="game.closePayModal()">Отмена</button>
             </div>
         </div>
     </div>
@@ -842,99 +828,31 @@
             const symbol = isGram ? '💎 Gram' : '🧂 Salt';
             const amount = item.prices[currency];
             document.getElementById('payTitle').textContent = `Оплата ${symbol}`;
-            document.getElementById('paySubtitle').textContent = 'Скопируйте реквизиты и переведите через @wallet';
+            document.getElementById('paySubtitle').textContent = isGram ? 'Через @wallet или любой TON-кошелёк' : 'Через @wallet (jetton Salt)';
             document.getElementById('payItem').textContent = item.name;
             document.getElementById('payAmount').textContent = `${amount} ${isGram ? 'TON' : 'SALT'}`;
             document.getElementById('payAddressRow').style.display = 'flex';
             document.getElementById('payAddress').textContent = CONFIG.tonWalletAddress;
             document.getElementById('payComment').style.display = 'block';
-            document.getElementById('payCommentText').textContent = this.pendingPayment.comment;
-            document.getElementById('payOpenWalletBtn').textContent = isGram ? '💎 Открыть @wallet' : '🧂 Открыть @wallet (выбрать Salt)';
+            document.getElementById('payComment').textContent = `Comment: ${this.pendingPayment.comment}`;
+            document.getElementById('payPrimaryBtn').textContent = isGram ? '💎 Открыть @wallet' : '🧂 Открыть @wallet';
             modal.classList.add('active');
             tg.HapticFeedback.impactOccurred('medium');
         }
-        // ===== PAYMENT METHODS =====
-        openPayWallet() {
-            if (!this.pendingPayment) return;
-            const curr = this.pendingPayment.currency;
-            if (curr === 'gram' || curr === 'salt') {
-                // Пробуем открыть @wallet через Telegram
-                try {
-                    tg.openTelegramLink('https://t.me/wallet');
-                } catch(e) {
-                    // Fallback: открываем через openLink
-                    try {
-                        tg.openLink('https://t.me/wallet');
-                    } catch(e2) {
-                        // Последний fallback: window.open
-                        window.open('https://t.me/wallet', '_blank');
-                    }
-                }
-                this.showToast('💎 Откройте @wallet → Отправить → вставьте адрес и comment');
-            }
-        }
-
-        copyPayAddress() {
-            const addr = document.getElementById('payAddress').textContent;
-            this.copyToClipboard(addr, 'Адрес скопирован!');
-        }
-
-        copyPayComment() {
-            const comment = document.getElementById('payCommentText').textContent;
-            this.copyToClipboard(comment, 'Comment скопирован!');
-        }
-
-        copyToClipboard(text, successMsg) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    this.showToast('📋 ' + successMsg);
-                    tg.HapticFeedback.impactOccurred('light');
-                }).catch(() => {
-                    this.fallbackCopy(text, successMsg);
-                });
-            } else {
-                this.fallbackCopy(text, successMsg);
-            }
-        }
-
-        fallbackCopy(text, successMsg) {
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
-            try {
-                document.execCommand('copy');
-                this.showToast('📋 ' + successMsg);
-            } catch(e) {
-                tg.showAlert('Скопируйте вручную:
-' + text);
-            }
-            document.body.removeChild(ta);
-        }
-
         confirmPayment() {
             if (!this.pendingPayment) return;
             const { item, currency, comment } = this.pendingPayment;
-
-            // Отправляем проверку боту
-            tg.sendData(JSON.stringify({ 
-                action: 'check_ton', 
-                comment: comment, 
-                currency: currency, 
-                item: item.id 
-            }));
-
-            this.showToast('🔍 Проверяем оплату... Это может занять 10-30 сек');
-            tg.HapticFeedback.impactOccurred('medium');
+            tg.openTelegramLink('https://t.me/wallet');
+            this.showToast('📋 Скопируйте адрес и comment из игры');
+            setTimeout(() => {
+                if (confirm('Проверить оплату?')) {
+                    tg.sendData(JSON.stringify({ action: 'check_ton', comment: comment, currency: currency, item: item.id }));
+                    this.showToast('🔍 Проверяем оплату...');
+                }
+            }, 500);
             this.closePayModal();
         }
-
-        closePayModal() { 
-            document.getElementById('payModal').classList.remove('active'); 
-            this.pendingPayment = null; 
-        }
+        closePayModal() { document.getElementById('payModal').classList.remove('active'); this.pendingPayment = null; }
 
         // ===== PROFILE =====
         renderProfile() {
