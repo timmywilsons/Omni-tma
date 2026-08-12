@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>OMNIVERSE — Все симуляторы</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --tg-bg: var(--tg-theme-bg-color, #0f0f23);
+            --tg-text: var(--tg-theme-text-color, #ffffff);
+            --tg-hint: var(--tg-theme-hint-color, #8e8e93);
+            --tg-link: var(--tg-theme-link-color, #3b82f6);
+            --tg-button: var(--tg-theme-button-color, #3b82f6);
+            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+            --tg-secondary: var(--tg-theme-secondary-bg-color, #1c1c2e);
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-bg);
+            color: var(--tg-text);
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            touch-action: manipulation;
+        }
+
+        /* ===== LOADING SCREEN ===== */
+        #loading {
+            position: fixed; inset: 0; z-index: 1000;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s;
+        }
+        #loading.hidden { opacity: 0; pointer-events: none; }
+        .loading-logo {
+            font-size: 48px; margin-bottom: 16px;
+            animation: float 2s ease-in-out infinite;
+        }
+        .loading-title {
+            font-size: 28px; font-weight: 800;
+            background: linear-gradient(90deg, #38bdf8, #a855f7, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .loading-bar {
+            width: 200px; height: 4px; background: rgba(255,255,255,0.1);
+            border-radius: 2px; overflow: hidden; margin-top: 20px;
+        }
+        .loading-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #38bdf8, #a855f7);
+            border-radius: 2px; animation: load 1.5s ease-out forwards;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes load { to { width: 100%; } }
+
+        /* ===== APP SHELL ===== */
+        #app {
+            display: none; flex-direction: column; height: 100%;
+            padding-top: var(--safe-top); padding-bottom: var(--safe-bottom);
+        }
+        #app.active { display: flex; }
+
+        .header {
+            padding: 12px 16px; background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .header-title { font-size: 18px; font-weight: 700; }
+        .header-stats {
+            display: flex; gap: 12px; font-size: 13px;
+        }
+        .header-stat {
+            display: flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.06); padding: 4px 10px;
+            border-radius: 20px; font-weight: 600;
+        }
+        .header-stat.coins { color: #fbbf24; }
+        .header-stat.energy { color: #38bdf8; }
+        .header-stat.xp { color: #a855f7; }
+
+        .content {
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 16px; position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+        .content::-webkit-scrollbar { display: none; }
+
+        /* ===== NAV BAR ===== */
+        .nav-bar {
+            display: flex; justify-content: space-around;
+            padding: 8px 0 calc(8px + var(--safe-bottom));
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            position: sticky; bottom: 0; z-index: 100;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 2px; padding: 4px 12px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s; border: none;
+            background: transparent; color: var(--tg-hint); font-size: 11px;
+        }
+        .nav-item.active { color: var(--tg-link); background: rgba(59,130,246,0.1); }
+        .nav-item:active { transform: scale(0.95); }
+        .nav-icon { font-size: 22px; }
+
+        /* ===== SCREENS ===== */
+        .screen { display: none; animation: fadeIn 0.3s; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ===== MAP SCREEN ===== */
+        .map-container {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
+            padding: 16px; position: relative; min-height: 400px;
+            overflow: hidden;
+        }
+        .map-grid {
+            position: absolute; inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .map-zones {
+            position: relative; z-index: 1; display: grid;
+            grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
+        .zone-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px; padding: 14px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 6px; cursor: pointer; transition: all 0.2s;
+            position: relative; overflow: hidden;
+        }
+        .zone-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, var(--zone-color, #3b82f6) 0%, transparent 60%);
+            opacity: 0.1; transition: opacity 0.3s;
+        }
+        .zone-card:hover::before, .zone-card:active::before { opacity: 0.2; }
+        .zone-card:active { transform: scale(0.97); }
+        .zone-icon { font-size: 32px; z-index: 1; }
+        .zone-name { font-size: 13px; font-weight: 700; z-index: 1; }
+        .zone-level {
+            font-size: 11px; color: var(--tg-hint); z-index: 1;
+            background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px;
+        }
+        .zone-income {
+            font-size: 11px; color: #fbbf24; font-weight: 600; z-index: 1;
+        }
+
+        /* ===== ZONE DETAIL ===== */
+        .zone-detail {
+            display: none; flex-direction: column; gap: 16px;
+        }
+        .zone-detail.active { display: flex; }
+        .zone-hero {
+            background: linear-gradient(135deg, var(--zone-color, #3b82f6) 0%, rgba(0,0,0,0.3) 100%);
+            border-radius: 16px; padding: 20px; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .zone-hero-icon { font-size: 48px; margin-bottom: 8px; }
+        .zone-hero-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+        .zone-hero-desc { font-size: 13px; opacity: 0.8; }
+        .zone-stats-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        }
+        .zone-stat-box {
+            background: rgba(255,255,255,0.04); border-radius: 12px;
+            padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .zone-stat-value { font-size: 20px; font-weight: 700; color: var(--zone-color, #3b82f6); }
+        .zone-stat-label { font-size: 11px; color: var(--tg-hint); margin-top: 2px; }
+
+        .action-buttons {
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .action-btn {
+            background: linear-gradient(135deg, var(--tg-button), #2563eb);
+            color: var(--tg-button-text); border: none; border-radius: 14px;
+            padding: 16px; font-size: 16px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 8px; transition: all 0.2s;
+            position: relative; overflow: hidden;
+        }
+        .action-btn:active { transform: scale(0.98); }
+        .action-btn:disabled {
+            opacity: 0.5; cursor: not-allowed; transform: none !important;
+        }
+        .action-btn.secondary {
+            background: rgba(255,255,255,0.06);
+            color: var(--tg-text); border: 1px solid rgba(255,255,255,0.1);
+        }
+        .action-btn.upgrade {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        .btn-cost {
+            font-size: 13px; opacity: 0.9; font-weight: 500;
+        }
+
+        .progress-section {
+            background: rgba(255,255,255,0.03); border-radius: 12px;
+            padding: 14px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .progress-header {
+            display: flex; justify-content: space-between; font-size: 13px;
+            margin-bottom: 6px; color: var(--tg-hint);
+        }
+        .progress-bar {
+            height: 8px; background: rgba(255,255,255,0.06);
+            border-radius: 4px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 4px;
+            background: linear-gradient(90deg, var(--zone-color, #3b82f6), #818cf8);
+            transition: width 0.5s ease;
+        }
+
+        .log-panel {
+            background: rgba(0,0,0,0.2); border-radius: 12px;
+            padding: 12px; font-size: 12px; font-family: 'Courier New', monospace;
+            max-height: 120px; overflow-y: auto; color: #94a3b8;
+        }
+        .log-entry { margin-bottom: 4px; padding-left: 14px; position: relative; }
+        .log-entry::before { content: '›'; position: absolute; left: 0; color: var(--zone-color, #3b82f6); }
+        .log-entry.gold { color: #fbbf24; }
+        .log-entry.xp { color: #a855f7; }
+
+        /* ===== SHOP SCREEN ===== */
+        .shop-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
+        .shop-item {
+            background: rgba(255,255,255,0.04); border-radius: 14px;
+            padding: 14px; border: 1px solid rgba(255,255,255,0.06);
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .shop-item-icon { font-size: 28px; }
+        .shop-item-name { font-size: 14px; font-weight: 700; }
+        .shop-item-desc { font-size: 12px; color: var(--tg-hint); }
+        .shop-item-btn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white; border: none; border-radius: 10px;
+            padding: 10px; font-size: 14px; font-weight: 700;
+            cursor: pointer; margin-top: auto;
+        }
+        .shop-item-btn:disabled { background: #374151; cursor: not-allowed; }
+        .shop-item-btn:active { transform: scale(0.97); }
+
+        /* ===== PROFILE SCREEN ===== */
+        .profile-card {
+            background: linear-gradient(135deg, #1e3a5f, #1e40af);
+            border-radius: 16px; padding: 24px; text-align: center;
+            margin-bottom: 16px;
+        }
+        .profile-avatar {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: linear-gradient(135deg, #38bdf8, #a855f7);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; margin: 0 auto 12px; border: 3px solid rgba(255,255,255,0.2);
+        }
+        .profile-name { font-size: 20px; font-weight: 700; }
+        .profile-rank { font-size: 13px; color: #fbbf24; margin-top: 4px; }
+
+        .achievements-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        }
+        .achievement {
+            background: rgba(255,255,255,0.04); border-radius: 12px;
+            padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .achievement.locked { opacity: 0.4; }
+        .achievement-icon { font-size: 24px; margin-bottom: 4px; }
+        .achievement-name { font-size: 11px; color: var(--tg-hint); }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+        }
+        .pulse { animation: pulse-glow 2s infinite; }
+
+        .floating-text {
+            position: absolute; font-weight: 700; font-size: 16px;
+            pointer-events: none; animation: floatUp 1s ease-out forwards;
+            z-index: 1000;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+        }
+
+        /* ===== QUEST ALERT ===== */
+        .quest-toast {
+            position: fixed; top: calc(var(--safe-top) + 60px); left: 16px; right: 16px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; padding: 14px 18px; border-radius: 14px;
+            font-size: 14px; font-weight: 600; z-index: 500;
+            transform: translateY(-100px); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 8px 32px rgba(245,158,11,0.3);
+        }
+        .quest-toast.show { transform: translateY(0); }
+
+        /* ===== ENERGY BAR ===== */
+        .energy-bar-container {
+            background: rgba(255,255,255,0.06); border-radius: 8px;
+            height: 6px; overflow: hidden; margin-top: 4px;
+        }
+        .energy-bar-fill {
+            height: 100%; background: linear-gradient(90deg, #38bdf8, #22d3ee);
+            border-radius: 8px; transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading -->
+    <div id="loading">
+        <div class="loading-logo">🌍</div>
+        <div class="loading-title">OMNIVERSE</div>
+        <div style="color: var(--tg-hint); font-size: 14px;">Загрузка мира...</div>
+        <div class="loading-bar"><div class="loading-fill"></div></div>
+    </div>
+
+    <!-- Quest Toast -->
+    <div class="quest-toast" id="questToast">🎯 Новый квест: Соберите 1000 монет!</div>
+
+    <!-- App -->
+    <div id="app">
+        <div class="header">
+            <div class="header-title" id="headerTitle">🌍 OMNIVERSE</div>
+            <div class="header-stats">
+                <div class="header-stat coins">💰 <span id="hCoins">0</span></div>
+                <div class="header-stat energy">⚡ <span id="hEnergy">100</span></div>
+                <div class="header-stat xp">⭐ <span id="hXP">1</span></div>
+            </div>
+        </div>
+
+        <div class="content" id="content">
+            <!-- MAP SCREEN -->
+            <div class="screen active" id="screen-map">
+                <div class="map-container">
+                    <div class="map-grid"></div>
+                    <div class="map-zones" id="mapZones"></div>
+                </div>
+                <div style="margin-top: 16px; font-size: 13px; color: var(--tg-hint); text-align: center;">
+                    Кликните на зону, чтобы начать симуляцию
+                </div>
+            </div>
+
+            <!-- ZONE SCREEN -->
+            <div class="screen" id="screen-zone">
+                <div class="zone-detail" id="zoneDetail">
+                    <div class="zone-hero" id="zoneHero">
+                        <div class="zone-hero-icon" id="zIcon">🌾</div>
+                        <div class="zone-hero-name" id="zName">Ферма</div>
+                        <div class="zone-hero-desc" id="zDesc">Симулятор фермера</div>
+                    </div>
+
+                    <div class="zone-stats-grid">
+                        <div class="zone-stat-box">
+                            <div class="zone-stat-value" id="zLevel">1</div>
+                            <div class="zone-stat-label">Уровень</div>
+                        </div>
+                        <div class="zone-stat-box">
+                            <div class="zone-stat-value" id="zIncome">5</div>
+                            <div class="zone-stat-label">Доход/клик</div>
+                        </div>
+                        <div class="zone-stat-box">
+                            <div class="zone-stat-value" id="zTotal">0</div>
+                            <div class="zone-stat-label">Всего заработано</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span>Прогресс зоны</span>
+                            <span id="zProgressText">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="zProgressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn" id="btnWork" onclick="game.work()">
+                            🔨 Работать <span class="btn-cost">(-5⚡ +<span id="workReward">5</span>💰)</span>
+                        </button>
+                        <button class="action-btn upgrade" id="btnUpgrade" onclick="game.upgrade()">
+                            ⬆️ Улучшить <span class="btn-cost">(<span id="upgradeCost">50</span>💰)</span>
+                        </button>
+                        <button class="action-btn secondary" onclick="game.backToMap()">
+                            🗺️ Вернуться на карту
+                        </button>
+                    </div>
+
+                    <div class="log-panel" id="zoneLog">
+                        <div class="log-entry">Зона загружена. Начните работать!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHOP SCREEN -->
+            <div class="screen" id="screen-shop">
+                <h2 style="margin-bottom: 16px; font-size: 20px;">🏪 Магазин</h2>
+                <div class="shop-grid" id="shopGrid"></div>
+            </div>
+
+            <!-- PROFILE SCREEN -->
+            <div class="screen" id="screen-profile">
+                <div class="profile-card">
+                    <div class="profile-avatar" id="pAvatar">👤</div>
+                    <div class="profile-name" id="pName">Игрок</div>
+                    <div class="profile-rank" id="pRank">🏆 Новичок</div>
+                </div>
+
+                <div style="margin-bottom: 12px; font-size: 16px; font-weight: 700;">📊 Статистика</div>
+                <div class="zone-stats-grid" style="margin-bottom: 20px;">
+                    <div class="zone-stat-box">
+                        <div class="zone-stat-value" id="pClicks">0</div>
+                        <div class="zone-stat-label">Кликов</div>
+                    </div>
+                    <div class="zone-stat-box">
+                        <div class="zone-stat-value" id="pMoney">0</div>
+                        <div class="zone-stat-label">Заработано</div>
+                    </div>
+                    <div class="zone-stat-box">
+                        <div class="zone-stat-value" id="pUpgrades">0</div>
+                        <div class="zone-stat-label">Улучшений</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px; font-size: 16px; font-weight: 700;">🏅 Достижения</div>
+                <div class="achievements-grid" id="achievementsGrid"></div>
+
+                <button class="action-btn secondary" style="margin-top: 20px;" onclick="game.saveCloud()">
+                    💾 Сохранить в облако
+                </button>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <button class="nav-item active" onclick="game.nav('map')">
+                <span class="nav-icon">🗺️</span>
+                <span>Карта</span>
+            </button>
+            <button class="nav-item" onclick="game.nav('shop')">
+                <span class="nav-icon">🏪</span>
+                <span>Магазин</span>
+            </button>
+            <button class="nav-item" onclick="game.nav('profile')">
+                <span class="nav-icon">👤</span>
+                <span>Профиль</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+    // ===== TELEGRAM WEB APP =====
+    let tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    tg.enableClosingConfirmation();
+    tg.setHeaderColor(tg.themeParams.bg_color || '#0f0f23');
+    tg.setBackgroundColor(tg.themeParams.bg_color || '#0f0f23');
+
+    // ===== GAME DATA =====
+    const ZONES = [
+        { id: 'farm', name: 'Ферма', icon: '🌾', color: '#22c55e', desc: 'Сажайте, собирайте, развивайте агробизнес',
+          baseIncome: 5, baseCost: 50, maxLevel: 50 },
+        { id: 'city', name: 'Мегаполис', icon: '🏙️', color: '#3b82f6', desc: 'Стройте город мечты',
+          baseIncome: 8, baseCost: 80, maxLevel: 50 },
+        { id: 'flight', name: 'Авиация', icon: '✈️', color: '#0ea5e9', desc: 'Покоряйте небо',
+          baseIncome: 12, baseCost: 120, maxLevel: 50 },
+        { id: 'survival', name: 'Выживание', icon: '🔥', color: '#f97316', desc: 'Дикая природа ждёт',
+          baseIncome: 6, baseCost: 60, maxLevel: 50 },
+        { id: 'space', name: 'Космос', icon: '🚀', color: '#a855f7', desc: 'Осваивайте галактику',
+          baseIncome: 20, baseCost: 200, maxLevel: 50 },
+        { id: 'race', name: 'Гонки', icon: '🏎️', color: '#ef4444', desc: 'Скорость — твой друг',
+          baseIncome: 15, baseCost: 150, maxLevel: 50 },
+        { id: 'sea', name: 'Море', icon: '⚓', color: '#14b8a6', desc: 'Покоряйте океан',
+          baseIncome: 10, baseCost: 100, maxLevel: 50 },
+        { id: 'construction', name: 'Стройка', icon: '🏗️', color: '#eab308', desc: 'Стройте будущее',
+          baseIncome: 9, baseCost: 90, maxLevel: 50 },
+        { id: 'medical', name: 'Медицина', icon: '🏥', color: '#ec4899', desc: 'Спасайте жизни',
+          baseIncome: 14, baseCost: 140, maxLevel: 50 },
+        { id: 'cooking', name: 'Кухня', icon: '👨‍🍳', color: '#f97316', desc: 'Готовьте шедевры',
+          baseIncome: 7, baseCost: 70, maxLevel: 50 }
+    ];
+
+    const SHOP_ITEMS = [
+        { id: 'energy_potion', name: 'Энергетик', icon: '⚡', desc: 'Мгновенно +50 энергии', cost: 100, effect: () => { game.data.energy = Math.min(game.data.maxEnergy, game.data.energy + 50); } },
+        { id: 'mega_potion', name: 'Мега-энергия', icon: '🔋', desc: 'Мгновенно +200 энергии', cost: 350, effect: () => { game.data.energy = Math.min(game.data.maxEnergy, game.data.energy + 200); } },
+        { id: 'auto_click', name: 'Автокликер', icon: '🤖', desc: 'Авто-работа 30 сек', cost: 500, effect: () => { game.startAutoClick(30); } },
+        { id: 'xp_boost', name: 'XP x2', icon: '⭐', desc: 'Удвоение опыта на 5 мин', cost: 800, effect: () => { game.activateBoost('xp', 300); } },
+        { id: 'income_boost', name: 'Доход x2', icon: '💰', desc: 'Удвоение дохода на 5 мин', cost: 1000, effect: () => { game.activateBoost('income', 300); } },
+        { id: 'max_energy', name: '+20 Макс. Энергии', icon: '⬆️', desc: 'Постоянное увеличение', cost: 2000, effect: () => { game.data.maxEnergy += 20; game.data.energy += 20; } }
+    ];
+
+    const ACHIEVEMENTS = [
+        { id: 'first_click', name: 'Первый шаг', icon: '👆', req: (d) => d.totalClicks >= 1 },
+        { id: 'rich', name: 'Богач', icon: '💎', req: (d) => d.coins >= 1000 },
+        { id: 'hardworker', name: 'Трудоголик', icon: '🔨', req: (d) => d.totalClicks >= 100 },
+        { id: 'investor', name: 'Инвестор', icon: '📈', req: (d) => d.totalUpgrades >= 10 },
+        { id: 'explorer', name: 'Исследователь', icon: '🧭', req: (d) => Object.values(d.zones).filter(z => z.level > 1).length >= 3 },
+        { id: 'master', name: 'Мастер', icon: '👑', req: (d) => Object.values(d.zones).some(z => z.level >= 10) },
+        { id: 'tycoon', name: 'Магнат', icon: '🏆', req: (d) => d.coins >= 10000 },
+        { id: 'omni', name: 'OMNI', icon: '🌍', req: (d) => Object.values(d.zones).every(z => z.level >= 5) }
+    ];
+
+    // ===== GAME ENGINE =====
+    class Game {
+        constructor() {
+            this.data = this.load();
+            this.currentZone = null;
+            this.boosts = { xp: 0, income: 0 };
+            this.autoClickInterval = null;
+            this.init();
+        }
+
+        defaultData() {
+            const zones = {};
+            ZONES.forEach(z => {
+                zones[z.id] = { level: 1, totalEarned: 0, clicks: 0 };
+            });
+            return {
+                coins: 0,
+                xp: 0,
+                level: 1,
+                energy: 100,
+                maxEnergy: 100,
+                totalClicks: 0,
+                totalUpgrades: 0,
+                totalEarned: 0,
+                zones: zones,
+                shop: {},
+                achievements: [],
+                lastEnergyUpdate: Date.now(),
+                user: tg.initDataUnsafe?.user?.first_name || 'Игрок'
+            };
+        }
+
+        load() {
+            try {
+                const saved = localStorage.getItem('omniverse_save');
+                if (saved) return JSON.parse(saved);
+            } catch(e) {}
+            return this.defaultData();
+        }
+
+        save() {
+            try {
+                localStorage.setItem('omniverse_save', JSON.stringify(this.data));
+            } catch(e) {}
+            this.updateHeader();
+        }
+
+        saveCloud() {
+            if (tg.CloudStorage) {
+                tg.CloudStorage.setItem('omniverse_save', JSON.stringify(this.data), (err) => {
+                    if (!err) {
+                        this.showToast('💾 Сохранено в облако Telegram!');
+                        tg.HapticFeedback.notificationOccurred('success');
+                    } else {
+                        this.showToast('❌ Ошибка сохранения');
+                    }
+                });
+            } else {
+                this.showToast('💾 CloudStorage недоступен, используется localStorage');
+            }
+        }
+
+        loadCloud() {
+            if (tg.CloudStorage) {
+                tg.CloudStorage.getItem('omniverse_save', (err, val) => {
+                    if (!err && val) {
+                        try {
+                            this.data = JSON.parse(val);
+                            this.showToast('☁️ Прогресс загружен из облака!');
+                            this.renderMap();
+                            this.updateHeader();
+                        } catch(e) {}
+                    }
+                });
+            }
+        }
+
+        init() {
+            this.renderMap();
+            this.renderShop();
+            this.renderProfile();
+            this.updateHeader();
+            this.regenEnergy();
+            this.loadCloud();
+
+            // Auto save every 10s
+            setInterval(() => this.save(), 10000);
+
+            // Energy regen every 10s
+            setInterval(() => this.regenEnergy(), 10000);
+
+            // Boost timer
+            setInterval(() => {
+                if (this.boosts.xp > 0) this.boosts.xp--;
+                if (this.boosts.income > 0) this.boosts.income--;
+            }, 1000);
+
+            // Random events
+            setInterval(() => {
+                if (this.currentZone && Math.random() > 0.7) {
+                    this.triggerRandomEvent();
+                }
+            }, 15000);
+
+            // Show app
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('app').classList.add('active');
+                tg.HapticFeedback.notificationOccurred('success');
+            }, 1500);
+        }
+
+        regenEnergy() {
+            const now = Date.now();
+            const diff = Math.floor((now - this.data.lastEnergyUpdate) / 1000);
+            if (diff > 0) {
+                this.data.energy = Math.min(this.data.maxEnergy, this.data.energy + diff * 2);
+                this.data.lastEnergyUpdate = now;
+                this.updateHeader();
+            }
+        }
+
+        nav(screen) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById('screen-' + screen).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            if (screen === 'profile') this.renderProfile();
+            if (screen === 'shop') this.renderShop();
+
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        updateHeader() {
+            document.getElementById('hCoins').textContent = this.formatNumber(this.data.coins);
+            document.getElementById('hEnergy').textContent = Math.floor(this.data.energy);
+            document.getElementById('hXP').textContent = this.data.level;
+        }
+
+        formatNumber(n) {
+            if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+            if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+            return Math.floor(n).toString();
+        }
+
+        renderMap() {
+            const grid = document.getElementById('mapZones');
+            grid.innerHTML = '';
+            ZONES.forEach(zone => {
+                const zd = this.data.zones[zone.id];
+                const card = document.createElement('div');
+                card.className = 'zone-card';
+                card.style.setProperty('--zone-color', zone.color);
+                card.innerHTML = `
+                    <div class="zone-icon">${zone.icon}</div>
+                    <div class="zone-name">${zone.name}</div>
+                    <div class="zone-level">Ур. ${zd.level}</div>
+                    <div class="zone-income">+${this.getIncome(zone.id)}💰/клик</div>
+                `;
+                card.onclick = () => this.enterZone(zone);
+                grid.appendChild(card);
+            });
+        }
+
+        enterZone(zone) {
+            this.currentZone = zone;
+            document.getElementById('screen-map').classList.remove('active');
+            document.getElementById('screen-zone').classList.add('active');
+            document.getElementById('zoneDetail').classList.add('active');
+            document.getElementById('headerTitle').textContent = zone.icon + ' ' + zone.name;
+
+            const hero = document.getElementById('zoneHero');
+            hero.style.background = `linear-gradient(135deg, ${zone.color}33, rgba(0,0,0,0.3))`;
+            hero.style.setProperty('--zone-color', zone.color);
+            document.getElementById('zIcon').textContent = zone.icon;
+            document.getElementById('zName').textContent = zone.name;
+            document.getElementById('zDesc').textContent = zone.desc;
+
+            this.updateZoneUI();
+            tg.HapticFeedback.impactOccurred('medium');
+
+            // Set back button
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => this.backToMap());
+        }
+
+        backToMap() {
+            this.currentZone = null;
+            document.getElementById('screen-zone').classList.remove('active');
+            document.getElementById('zoneDetail').classList.remove('active');
+            document.getElementById('screen-map').classList.add('active');
+            document.getElementById('headerTitle').textContent = '🌍 OMNIVERSE';
+            tg.BackButton.hide();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        updateZoneUI() {
+            if (!this.currentZone) return;
+            const zd = this.data.zones[this.currentZone.id];
+            const income = this.getIncome(this.currentZone.id);
+            const cost = this.getUpgradeCost(this.currentZone.id);
+            const progress = Math.min(100, (zd.level / this.currentZone.maxLevel) * 100);
+
+            document.getElementById('zLevel').textContent = zd.level;
+            document.getElementById('zIncome').textContent = income;
+            document.getElementById('zTotal').textContent = this.formatNumber(zd.totalEarned);
+            document.getElementById('zProgressText').textContent = Math.floor(progress) + '%';
+            document.getElementById('zProgressBar').style.width = progress + '%';
+            document.getElementById('workReward').textContent = income;
+            document.getElementById('upgradeCost').textContent = cost;
+
+            document.getElementById('btnWork').disabled = this.data.energy < 5;
+            document.getElementById('btnUpgrade').disabled = this.data.coins < cost || zd.level >= this.currentZone.maxLevel;
+
+            if (zd.level >= this.currentZone.maxLevel) {
+                document.getElementById('btnUpgrade').innerHTML = '✅ Максимальный уровень';
+            }
+        }
+
+        getIncome(zoneId) {
+            const zone = ZONES.find(z => z.id === zoneId);
+            const zd = this.data.zones[zoneId];
+            let income = Math.floor(zone.baseIncome * Math.pow(1.15, zd.level - 1));
+            if (this.boosts.income > 0) income *= 2;
+            return income;
+        }
+
+        getUpgradeCost(zoneId) {
+            const zone = ZONES.find(z => z.id === zoneId);
+            const zd = this.data.zones[zoneId];
+            return Math.floor(zone.baseCost * Math.pow(1.5, zd.level - 1));
+        }
+
+        work() {
+            if (!this.currentZone || this.data.energy < 5) return;
+
+            const zone = this.currentZone;
+            const zd = this.data.zones[zone.id];
+            const income = this.getIncome(zone.id);
+            const xpGain = Math.floor(income * 0.5 * (this.boosts.xp > 0 ? 2 : 1));
+
+            this.data.energy -= 5;
+            this.data.coins += income;
+            this.data.xp += xpGain;
+            this.data.totalClicks++;
+            this.data.totalEarned += income;
+            zd.clicks++;
+            zd.totalEarned += income;
+
+            // Level up check
+            const xpNeeded = this.data.level * 100;
+            if (this.data.xp >= xpNeeded) {
+                this.data.level++;
+                this.data.xp -= xpNeeded;
+                this.data.maxEnergy += 10;
+                this.data.energy = this.data.maxEnergy;
+                this.addLog(`🎉 Уровень повышен! Теперь вы ${this.data.level} уровень!`, 'xp');
+                tg.HapticFeedback.notificationOccurred('success');
+                this.showToast(`🎉 Уровень ${this.data.level}!`);
+            } else {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+
+            this.addLog(`+${income}💰 +${xpGain}⭐ (Энергия: ${Math.floor(this.data.energy)})`, 'gold');
+            this.updateZoneUI();
+            this.updateHeader();
+            this.save();
+
+            // Floating text
+            this.showFloatingText(event.clientX || window.innerWidth/2, event.clientY || window.innerHeight/2, `+${income}💰`);
+        }
+
+        upgrade() {
+            if (!this.currentZone) return;
+            const cost = this.getUpgradeCost(this.currentZone.id);
+            const zd = this.data.zones[this.currentZone.id];
+
+            if (this.data.coins >= cost && zd.level < this.currentZone.maxLevel) {
+                this.data.coins -= cost;
+                zd.level++;
+                this.data.totalUpgrades++;
+                this.addLog(`⬆️ Уровень повышен до ${zd.level}! Доход: +${this.getIncome(this.currentZone.id)}💰`);
+                tg.HapticFeedback.notificationOccurred('success');
+                this.updateZoneUI();
+                this.updateHeader();
+                this.save();
+                this.renderMap();
+            }
+        }
+
+        addLog(msg, type = '') {
+            const log = document.getElementById('zoneLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = msg;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            while (log.children.length > 20) log.removeChild(log.firstChild);
+        }
+
+        triggerRandomEvent() {
+            const events = [
+                { text: '💰 Бонус! Нашли клад: +50 монет', effect: () => { this.data.coins += 50; } },
+                { text: '⚡ Второе дыхание! +20 энергии', effect: () => { this.data.energy = Math.min(this.data.maxEnergy, this.data.energy + 20); } },
+                { text: '🎁 Подарок от спонсора! +100 XP', effect: () => { this.data.xp += 100; } },
+                { text: '🔥 Удачный день! Доход x2 на 30 сек', effect: () => { this.activateBoost('income', 30); } }
+            ];
+            const ev = events[Math.floor(Math.random() * events.length)];
+            ev.effect();
+            this.addLog(ev.text, 'gold');
+            this.showToast(ev.text);
+            tg.HapticFeedback.notificationOccurred('success');
+            this.updateHeader();
+        }
+
+        renderShop() {
+            const grid = document.getElementById('shopGrid');
+            grid.innerHTML = '';
+            SHOP_ITEMS.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'shop-item';
+                div.innerHTML = `
+                    <div class="shop-item-icon">${item.icon}</div>
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-desc">${item.desc}</div>
+                    <button class="shop-item-btn" ${this.data.coins < item.cost ? 'disabled' : ''}>
+                        ${this.data.coins < item.cost ? '❌' : '💰'} ${item.cost}
+                    </button>
+                `;
+                div.querySelector('button').onclick = () => this.buyItem(item);
+                grid.appendChild(div);
+            });
+        }
+
+        buyItem(item) {
+            if (this.data.coins >= item.cost) {
+                this.data.coins -= item.cost;
+                item.effect();
+                this.showToast(`✅ Куплено: ${item.name}`);
+                tg.HapticFeedback.notificationOccurred('success');
+                this.updateHeader();
+                this.renderShop();
+                this.save();
+            }
+        }
+
+        startAutoClick(seconds) {
+            if (this.autoClickInterval) clearInterval(this.autoClickInterval);
+            let count = 0;
+            this.autoClickInterval = setInterval(() => {
+                if (!this.currentZone || this.data.energy < 5) {
+                    clearInterval(this.autoClickInterval);
+                    return;
+                }
+                this.work();
+                count++;
+                if (count >= seconds) {
+                    clearInterval(this.autoClickInterval);
+                    this.showToast('🤖 Автокликер завершил работу');
+                }
+            }, 1000);
+            this.showToast('🤖 Автокликер активирован!');
+        }
+
+        activateBoost(type, seconds) {
+            this.boosts[type] = seconds;
+            const name = type === 'xp' ? 'XP x2' : 'Доход x2';
+            this.showToast(`⚡ ${name} на ${seconds} сек!`);
+        }
+
+        renderProfile() {
+            const user = tg.initDataUnsafe?.user;
+            document.getElementById('pName').textContent = user?.first_name || this.data.user || 'Игрок';
+            document.getElementById('pAvatar').textContent = user?.first_name?.[0] || '👤';
+
+            const ranks = ['Новичок', 'Странник', 'Искатель', 'Мастер', 'Легенда', 'Бог Омниверса'];
+            const rankIdx = Math.min(Math.floor(this.data.level / 10), ranks.length - 1);
+            document.getElementById('pRank').textContent = '🏆 ' + ranks[rankIdx];
+
+            document.getElementById('pClicks').textContent = this.formatNumber(this.data.totalClicks);
+            document.getElementById('pMoney').textContent = this.formatNumber(this.data.totalEarned);
+            document.getElementById('pUpgrades').textContent = this.formatNumber(this.data.totalUpgrades);
+
+            const grid = document.getElementById('achievementsGrid');
+            grid.innerHTML = '';
+            ACHIEVEMENTS.forEach(ach => {
+                const unlocked = this.data.achievements.includes(ach.id) || ach.req(this.data);
+                if (unlocked && !this.data.achievements.includes(ach.id)) {
+                    this.data.achievements.push(ach.id);
+                    this.showToast(`🏅 Достижение: ${ach.name}!`);
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+                const div = document.createElement('div');
+                div.className = 'achievement' + (unlocked ? '' : ' locked');
+                div.innerHTML = `<div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        showToast(text) {
+            const toast = document.getElementById('questToast');
+            toast.textContent = text;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        showFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.textContent = text;
+            el.style.left = (x - 20) + 'px';
+            el.style.top = (y - 40) + 'px';
+            el.style.color = '#fbbf24';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+    }
+
+    // ===== INIT =====
+    const game = new Game();
+
+    // Handle viewport changes
+    tg.onEvent('viewportChanged', () => {
+        tg.expand();
+    });
+    </script>
+</body>
+</html>
