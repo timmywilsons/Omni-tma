@@ -192,6 +192,32 @@
 
     <div class="quest-toast" id="questToast">🎯</div>
 
+    <!-- Wallet Input Modal -->
+    <div class="modal-overlay" id="walletInputModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="game.closeWalletInputModal()">✕</button>
+            <div class="modal-icon">💎</div>
+            <div class="modal-title">Подключить кошелёк</div>
+            <div class="modal-subtitle">Введите ваш TON-адрес (UQ... или EQ...)</div>
+            <input type="text" id="walletInputField" placeholder="UQ... или EQ..." style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:var(--tg-text); font-family:monospace; font-size:14px; margin:12px 0; outline:none;">
+            <div id="walletInputError" style="color:#ef4444; font-size:12px; margin-bottom:8px; display:none;">❌ Неверный адрес. Должен начинаться с UQ или EQ</div>
+            <button class="modal-btn" onclick="game.submitWalletAddress()">💾 Сохранить адрес</button>
+            <button class="modal-btn secondary" onclick="game.openWalletBot()">🔗 Открыть @wallet</button>
+        </div>
+    </div>
+
+    <!-- TonConnect Modal -->
+    <div class="modal-overlay" id="tonConnectModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="game.closeTonConnectModal()">✕</button>
+            <div class="modal-icon">🔗</div>
+            <div class="modal-title">TonConnect</div>
+            <div class="modal-subtitle">Выберите способ подключения</div>
+            <button class="modal-btn" onclick="game.openWalletBot()">📱 @wallet (Telegram)</button>
+            <button class="modal-btn secondary" onclick="game.openTonkeeper()">🦊 Tonkeeper</button>
+            <button class="modal-btn secondary" onclick="game.showWalletInputModal()">⌨️ Ввести адрес вручную</button>
+        </div>
+    </div>
     <!-- Daily Reward Modal -->
     <div class="modal-overlay" id="dailyModal">
         <div class="modal-card">
@@ -576,37 +602,59 @@
         }
 
         // ===== WALLET / TONCONNECT =====
+        // ===== WALLET / TONCONNECT =====
         connectWallet() {
-            // Открываем @wallet для подключения
+            document.getElementById('tonConnectModal').classList.add('active');
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        closeTonConnectModal() {
+            document.getElementById('tonConnectModal').classList.remove('active');
+        }
+        openWalletBot() {
             tg.openTelegramLink('https://t.me/wallet');
-            this.showToast('💎 Откройте @wallet и подключите кошелёк');
+            this.showToast('💎 Откройте @wallet → скопируйте адрес');
+            this.closeTonConnectModal();
+            setTimeout(() => this.showWalletInputModal(), 1500);
+        }
+        openTonkeeper() {
+            tg.openLink('https://tonkeeper.com/');
+            this.showToast('🦊 Откройте Tonkeeper → скопируйте адрес');
+            this.closeTonConnectModal();
+            setTimeout(() => this.showWalletInputModal(), 1500);
+        }
+        showWalletInputModal() {
+            document.getElementById('walletInputModal').classList.add('active');
+            document.getElementById('walletInputField').value = this.data.walletAddress || '';
+            document.getElementById('walletInputError').style.display = 'none';
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        closeWalletInputModal() {
+            document.getElementById('walletInputModal').classList.remove('active');
+        }
+        submitWalletAddress() {
+            const addr = document.getElementById('walletInputField').value.trim();
+            const errorEl = document.getElementById('walletInputError');
 
-            // Запрашиваем адрес у пользователя
-            setTimeout(() => {
-                tg.showPopup({
-                    title: 'Подключить кошелёк',
-                    message: 'Введите ваш TON-адрес (UQ... или EQ...):',
-                    buttons: [
-                        { id: 'submit', type: 'default', text: 'Сохранить' },
-                        { id: 'cancel', type: 'cancel' }
-                    ]
-                }, (btnId) => {
-                    if (btnId === 'submit') {
-                        // В TMA showPopup не поддерживает input, поэтому используем prompt
-                        const addr = prompt('Введите ваш TON-адрес:', '');
-                        if (addr && (addr.startsWith('UQ') || addr.startsWith('EQ'))) {
-                            this.data.walletAddress = addr;
-                            this.data.walletConnected = true;
-                            this.save();
-                            this.renderProfile();
-                            this.showToast('💎 Кошелёк подключён!');
-                            tg.sendData(JSON.stringify({ action: 'connect_wallet', wallet_address: addr, user_id: this.data.userId }));
-                        } else {
-                            this.showToast('❌ Неверный адрес');
-                        }
-                    }
-                });
-            }, 500);
+            if (!addr || !(addr.startsWith('UQ') || addr.startsWith('EQ'))) {
+                errorEl.style.display = 'block';
+                tg.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            this.data.walletAddress = addr;
+            this.data.walletConnected = true;
+            this.save();
+            this.renderProfile();
+            this.closeWalletInputModal();
+            this.showToast('💎 Кошелёк подключён!');
+            tg.HapticFeedback.notificationOccurred('success');
+
+            tg.sendData(JSON.stringify({ 
+                action: 'connect_wallet', 
+                wallet_address: addr, 
+                user_id: this.data.userId 
+            }));
         }
 
         // ===== LEADERBOARD =====
