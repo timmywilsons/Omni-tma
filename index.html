@@ -1,899 +1,801 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>OMNIVERSE — Все симуляторы</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --tg-bg: var(--tg-theme-bg-color, #0f0f23);
-            --tg-text: var(--tg-theme-text-color, #ffffff);
-            --tg-hint: var(--tg-theme-hint-color, #8e8e93);
-            --tg-link: var(--tg-theme-link-color, #3b82f6);
-            --tg-button: var(--tg-theme-button-color, #3b82f6);
-            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
-            --safe-top: env(safe-area-inset-top, 0px);
-            --safe-bottom: env(safe-area-inset-bottom, 0px);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--tg-bg); color: var(--tg-text); overflow: hidden; height: 100vh; height: 100dvh; touch-action: manipulation; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>OMNIVERSE</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-bg-color, #0b0b1a);
+  --text: var(--tg-theme-text-color, #ffffff);
+  --hint: var(--tg-theme-hint-color, #8e8e93);
+  --link: var(--tg-theme-link-color, #3b82f6);
+  --btn: var(--tg-theme-button-color, #3b82f6);
+  --btn-text: var(--tg-theme-button-text-color, #ffffff);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; height:100dvh; touch-action:manipulation; }
 
-        #loading { position: fixed; inset: 0; z-index: 1000; background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
-        #loading.hidden { opacity: 0; pointer-events: none; }
-        .loading-logo { font-size: 48px; margin-bottom: 16px; animation: float 2s ease-in-out infinite; }
-        .loading-title { font-size: 28px; font-weight: 800; background: linear-gradient(90deg, #38bdf8, #a855f7, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
-        .loading-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 20px; }
-        .loading-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #a855f7); animation: load 1.5s ease-out forwards; }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        @keyframes load { to { width: 100%; } }
+/* Loading */
+#loading { position:fixed; inset:0; z-index:999; background:linear-gradient(135deg,#0b0b1a,#151530,#0b0b1a); display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity .6s; }
+#loading.hidden { opacity:0; pointer-events:none; }
+.ld-logo { font-size:52px; margin-bottom:16px; animation:float 2.2s ease-in-out infinite; }
+.ld-title { font-size:30px; font-weight:800; background:linear-gradient(90deg,#38bdf8,#a855f7,#f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
+.ld-sub { color:var(--hint); font-size:14px; }
+.ld-bar { width:180px; height:4px; background:rgba(255,255,255,.08); border-radius:2px; margin-top:20px; overflow:hidden; }
+.ld-fill { height:100%; width:0; background:linear-gradient(90deg,#38bdf8,#a855f7); animation:load 1.8s ease-out forwards; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+@keyframes load { to{width:100%} }
 
-        #app { display: none; flex-direction: column; height: 100%; padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
-        #app.active { display: flex; }
+/* App */
+#app { display:none; flex-direction:column; height:100%; padding-top:var(--safe-top); padding-bottom:var(--safe-bot); }
+#app.active { display:flex; }
 
-        .header { padding: 12px 16px; background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-        .header-title { font-size: 18px; font-weight: 700; }
-        .header-stats { display: flex; gap: 10px; font-size: 13px; }
-        .header-stat { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
-        .header-stat.coins { color: #fbbf24; }
-        .header-stat.energy { color: #38bdf8; }
-        .header-stat.xp { color: #a855f7; }
+/* Header */
+.header { padding:10px 14px; background:rgba(255,255,255,.025); backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,.04); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.h-title { font-size:17px; font-weight:700; }
+.h-stats { display:flex; gap:8px; font-size:12px; }
+.h-stat { display:flex; align-items:center; gap:3px; background:rgba(255,255,255,.05); padding:3px 10px; border-radius:20px; font-weight:600; }
 
-        .content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; position: relative; -webkit-overflow-scrolling: touch; }
-        .content::-webkit-scrollbar { display: none; }
+/* Content */
+.content { flex:1; overflow-y:auto; padding:14px; -webkit-overflow-scrolling:touch; }
+.content::-webkit-scrollbar { display:none; }
 
-        .nav-bar { display: flex; justify-content: space-around; padding: 8px 0 calc(8px + var(--safe-bottom)); background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.05); position: sticky; bottom: 0; z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 12px; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: none; background: transparent; color: var(--tg-hint); font-size: 11px; }
-        .nav-item.active { color: var(--tg-link); background: rgba(59,130,246,0.1); }
-        .nav-item:active { transform: scale(0.95); }
-        .nav-icon { font-size: 22px; }
+/* Nav */
+.nav { display:flex; justify-content:space-around; padding:6px 0 calc(6px + var(--safe-bot)); background:rgba(255,255,255,.02); backdrop-filter:blur(16px); border-top:1px solid rgba(255,255,255,.04); position:sticky; bottom:0; z-index:100; }
+.nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:4px 14px; border-radius:12px; cursor:pointer; border:none; background:transparent; color:var(--hint); font-size:11px; transition:.15s; }
+.nav-item.active { color:var(--link); background:rgba(59,130,246,.08); }
+.nav-item:active { transform:scale(.95); }
+.nav-icon { font-size:20px; }
 
-        .screen { display: none; animation: fadeIn 0.3s; }
-        .screen.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* Screens */
+.screen { display:none; animation:fadeIn .3s; }
+.screen.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
-        /* MODALS */
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
-        .modal-card { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; animation: slideUp 0.3s; position: relative; }
-        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--tg-hint); font-size: 20px; cursor: pointer; }
-        .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; text-align: center; }
-        .modal-subtitle { font-size: 13px; color: var(--tg-hint); text-align: center; margin-bottom: 20px; }
-        .modal-icon { font-size: 48px; text-align: center; margin-bottom: 12px; }
-        .modal-btn { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 14px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 12px; }
-        .modal-btn.secondary { background: rgba(255,255,255,0.06); color: var(--tg-text); border: 1px solid rgba(255,255,255,0.1); }
-        .modal-btn.gold { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .modal-btn:active { transform: scale(0.98); }
+/* Toast */
+#toast { position:fixed; top:calc(var(--safe-top) + 56px); left:14px; right:14px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; padding:12px 16px; border-radius:14px; font-size:13px; font-weight:600; z-index:500; transform:translateY(-120px); transition:transform .4s cubic-bezier(.34,1.56,.64,1); box-shadow:0 8px 28px rgba(245,158,11,.25); text-align:center; }
+#toast.show { transform:translateY(0); }
 
-        /* DAILY REWARD */
-        .daily-streak { display: flex; justify-content: center; gap: 6px; margin: 16px 0; }
-        .streak-day { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--tg-hint); }
-        .streak-day.active { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-color: transparent; box-shadow: 0 0 12px rgba(245,158,11,0.3); }
-        .streak-day.claimed { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border-color: transparent; }
-        .daily-reward-amount { font-size: 36px; font-weight: 800; text-align: center; color: #fbbf24; margin: 8px 0; }
+/* Modals */
+.modal { display:none; position:fixed; inset:0; z-index:600; background:rgba(0,0,0,.65); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:16px; }
+.modal.active { display:flex; }
+.m-card { background:linear-gradient(180deg,#1a1a35,#0f0f23); border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:22px; width:100%; max-width:360px; animation:slideUp .3s; position:relative; }
+@keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+.m-close { position:absolute; top:10px; right:14px; background:none; border:none; color:var(--hint); font-size:20px; cursor:pointer; padding:4px; }
+.m-icon { font-size:44px; text-align:center; margin-bottom:10px; }
+.m-title { font-size:19px; font-weight:700; text-align:center; margin-bottom:4px; }
+.m-sub { font-size:13px; color:var(--hint); text-align:center; margin-bottom:18px; }
+.m-btn { width:100%; background:linear-gradient(135deg,var(--btn),#2563eb); color:var(--btn-text); border:none; border-radius:14px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px; transition:.15s; }
+.m-btn:active { transform:scale(.98); }
+.m-btn.secondary { background:rgba(255,255,255,.06); color:var(--text); border:1px solid rgba(255,255,255,.1); }
+.m-btn.gold { background:linear-gradient(135deg,#f59e0b,#d97706); }
+.m-btn.green { background:linear-gradient(135deg,#22c55e,#16a34a); }
+.m-btn.red { background:linear-gradient(135deg,#ef4444,#dc2626); }
 
-        /* MAP */
-        .map-container { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; position: relative; min-height: 400px; overflow: hidden; }
-        .map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px; }
-        .map-zones { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .zone-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
-        .zone-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--zone-color, #3b82f6) 0%, transparent 60%); opacity: 0.1; transition: opacity 0.3s; }
-        .zone-card:hover::before, .zone-card:active::before { opacity: 0.2; }
-        .zone-card:active { transform: scale(0.97); }
-        .zone-icon { font-size: 32px; z-index: 1; }
-        .zone-name { font-size: 13px; font-weight: 700; z-index: 1; }
-        .zone-level { font-size: 11px; color: var(--tg-hint); z-index: 1; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; }
-        .zone-income { font-size: 11px; color: #fbbf24; font-weight: 600; z-index: 1; }
+/* Inputs */
+.m-input { width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.2); color:var(--text); font-size:14px; font-family:monospace; margin:10px 0; outline:none; }
+.m-input:focus { border-color:rgba(59,130,246,.5); }
+.m-error { color:#ef4444; font-size:12px; margin-bottom:8px; display:none; }
 
-        /* ZONE DETAIL */
-        .zone-detail { display: none; flex-direction: column; gap: 16px; }
-        .zone-detail.active { display: flex; }
-        .zone-hero { background: linear-gradient(135deg, var(--zone-color, #3b82f6)33, rgba(0,0,0,0.3)); border-radius: 16px; padding: 20px; text-align: center; position: relative; overflow: hidden; }
-        .zone-hero-icon { font-size: 48px; margin-bottom: 8px; }
-        .zone-hero-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
-        .zone-hero-desc { font-size: 13px; opacity: 0.8; }
-        .zone-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .zone-stat-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .zone-stat-value { font-size: 20px; font-weight: 700; color: var(--zone-color, #3b82f6); }
-        .zone-stat-label { font-size: 11px; color: var(--tg-hint); margin-top: 2px; }
-        .action-buttons { display: flex; flex-direction: column; gap: 10px; }
-        .action-btn { background: linear-gradient(135deg, var(--tg-button), #2563eb); color: var(--tg-button-text); border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; position: relative; overflow: hidden; }
-        .action-btn:active { transform: scale(0.98); }
-        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-        .action-btn.secondary { background: rgba(255,255,255,0.06); color: var(--tg-text); border: 1px solid rgba(255,255,255,0.1); }
-        .action-btn.upgrade { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .btn-cost { font-size: 13px; opacity: 0.9; font-weight: 500; }
-        .progress-section { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; border: 1px solid rgba(255,255,255,0.05); }
-        .progress-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--tg-hint); }
-        .progress-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--zone-color, #3b82f6), #818cf8); transition: width 0.5s ease; }
-        .log-panel { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; font-size: 12px; font-family: 'Courier New', monospace; max-height: 120px; overflow-y: auto; color: #94a3b8; }
-        .log-entry { margin-bottom: 4px; padding-left: 14px; position: relative; }
-        .log-entry::before { content: '›'; position: absolute; left: 0; color: var(--zone-color, #3b82f6); }
-        .log-entry.gold { color: #fbbf24; }
-        .log-entry.xp { color: #a855f7; }
+/* Map */
+.map-wrap { background:linear-gradient(180deg,#1a2332,#0f172a); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px; position:relative; min-height:380px; overflow:hidden; }
+.map-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size:40px 40px; }
+.map-zones { position:relative; z-index:1; display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.zone-card { background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:14px; display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; transition:.2s; position:relative; overflow:hidden; }
+.zone-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,var(--zc,#3b82f6) 0%,transparent 60%); opacity:.08; transition:opacity .3s; }
+.zone-card:active { transform:scale(.97); }
+.zone-card:active::before { opacity:.18; }
+.z-icon { font-size:30px; z-index:1; }
+.z-name { font-size:13px; font-weight:700; z-index:1; }
+.z-lvl { font-size:11px; color:var(--hint); z-index:1; background:rgba(0,0,0,.25); padding:2px 8px; border-radius:10px; }
+.z-inc { font-size:11px; color:#fbbf24; font-weight:600; z-index:1; }
 
-        /* SHOP */
-        .currency-tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
-        .currency-tab { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; color: var(--tg-hint); }
-        .currency-tab.active { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border-color: transparent; }
-        .currency-tab:active { transform: scale(0.95); }
-        .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .shop-item { background: rgba(255,255,255,0.04); border-radius: 14px; padding: 14px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 8px; }
-        .shop-item-icon { font-size: 28px; }
-        .shop-item-name { font-size: 14px; font-weight: 700; }
-        .shop-item-desc { font-size: 12px; color: var(--tg-hint); }
-        .shop-price { font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: rgba(0,0,0,0.2); display: inline-block; margin-top: 2px; }
-        .shop-price.stars { color: #fbbf24; }
-        .shop-price.gram { color: #3b82f6; }
-        .shop-price.salt { color: #14b8a6; }
-        .shop-item-btn { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; border-radius: 10px; padding: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: auto; }
-        .shop-item-btn:disabled { background: #374151; cursor: not-allowed; }
-        .shop-item-btn:active { transform: scale(0.97); }
+/* Zone detail */
+.z-hero { background:linear-gradient(135deg,var(--zc,#3b82f6)22,rgba(0,0,0,.25)); border-radius:16px; padding:18px; text-align:center; }
+.z-hero-icon { font-size:44px; margin-bottom:6px; }
+.z-hero-name { font-size:20px; font-weight:800; margin-bottom:3px; }
+.z-hero-desc { font-size:12px; opacity:.75; }
+.z-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0; }
+.z-box { background:rgba(255,255,255,.03); border-radius:12px; padding:12px; text-align:center; border:1px solid rgba(255,255,255,.04); }
+.z-val { font-size:18px; font-weight:700; color:var(--zc,#3b82f6); }
+.z-label { font-size:11px; color:var(--hint); margin-top:2px; }
+.progress-wrap { background:rgba(255,255,255,.02); border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,.04); margin-bottom:14px; }
+.progress-h { display:flex; justify-content:space-between; font-size:12px; color:var(--hint); margin-bottom:5px; }
+.progress-bar { height:7px; background:rgba(255,255,255,.05); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--zc,#3b82f6),#818cf8); transition:width .5s; }
+.act-btn { background:linear-gradient(135deg,var(--btn),#2563eb); color:var(--btn-text); border:none; border-radius:14px; padding:15px; font-size:15px; font-weight:700; cursor:pointer; width:100%; margin-bottom:10px; transition:.15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+.act-btn:active { transform:scale(.98); }
+.act-btn:disabled { opacity:.45; cursor:not-allowed; transform:none !important; }
+.act-btn.upg { background:linear-gradient(135deg,#f59e0b,#d97706); }
+.act-btn.sec { background:rgba(255,255,255,.05); color:var(--text); border:1px solid rgba(255,255,255,.1); }
+.log { background:rgba(0,0,0,.18); border-radius:12px; padding:10px; font-size:11px; font-family:'Courier New',monospace; max-height:110px; overflow-y:auto; color:#94a3b8; }
+.log-entry { margin-bottom:3px; padding-left:12px; position:relative; }
+.log-entry::before { content:'›'; position:absolute; left:0; color:var(--zc,#3b82f6); }
+.log-entry.gold { color:#fbbf24; }
+.log-entry.xp { color:#a855f7; }
 
-        /* PAYMENT MODAL */
-        .pay-detail { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
-        .pay-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
-        .pay-row:last-child { margin-bottom: 0; }
-        .pay-row .label { color: var(--tg-hint); }
-        .pay-row .value { font-weight: 600; font-family: monospace; }
-        .pay-row .value.address { font-size: 11px; word-break: break-all; text-align: right; max-width: 60%; }
-        .pay-comment { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 10px; font-size: 12px; color: #fbbf24; text-align: center; margin-bottom: 12px; font-family: monospace; }
-        .pay-actions { display: flex; flex-direction: column; gap: 10px; }
-        .pay-btn { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 14px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; }
-        .pay-btn.secondary { background: rgba(255,255,255,0.06); color: var(--tg-text); border: 1px solid rgba(255,255,255,0.1); }
-        .pay-btn:active { transform: scale(0.98); }
+/* Shop */
+.cur-tabs { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px; }
+.cur-tab { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; color:var(--hint); transition:.15s; }
+.cur-tab.active { background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; border-color:transparent; }
+.cur-tab:active { transform:scale(.95); }
+.shop-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; }
+.s-item { background:rgba(255,255,255,.03); border-radius:14px; padding:13px; border:1px solid rgba(255,255,255,.05); display:flex; flex-direction:column; gap:6px; }
+.s-icon { font-size:26px; }
+.s-name { font-size:13px; font-weight:700; }
+.s-desc { font-size:11px; color:var(--hint); }
+.s-price { font-size:12px; font-weight:600; padding:3px 9px; border-radius:8px; background:rgba(0,0,0,.2); display:inline-block; margin-top:2px; }
+.s-price.stars { color:#fbbf24; }
+.s-price.gram { color:#60a5fa; }
+.s-price.salt { color:#2dd4bf; }
+.s-btn { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; border-radius:10px; padding:9px; font-size:13px; font-weight:700; cursor:pointer; margin-top:auto; }
+.s-btn:active { transform:scale(.97); }
 
-        /* PROFILE */
-        .profile-card { background: linear-gradient(135deg, #1e3a5f, #1e40af); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; position: relative; overflow: hidden; }
-        .profile-card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 30% 30%, rgba(56,189,248,0.1) 0%, transparent 50%); pointer-events: none; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 12px; border: 3px solid rgba(255,255,255,0.2); }
-        .profile-name { font-size: 20px; font-weight: 700; }
-        .profile-rank { font-size: 13px; color: #fbbf24; margin-top: 4px; }
-        .profile-section { margin-bottom: 20px; }
-        .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        .profile-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .wallet-card { background: rgba(255,255,255,0.04); border-radius: 14px; padding: 16px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 16px; }
-        .wallet-status { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 10px; }
-        .wallet-status .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-        .wallet-status .dot.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-        .wallet-address { font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; word-break: break-all; color: var(--tg-hint); }
-        .ref-card { background: rgba(255,255,255,0.04); border-radius: 14px; padding: 16px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 16px; }
-        .ref-link { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px 12px; font-family: monospace; font-size: 12px; word-break: break-all; color: #38bdf8; margin: 10px 0; border: 1px dashed rgba(56,189,248,0.3); }
-        .ref-stats { display: flex; gap: 16px; margin-top: 10px; }
-        .ref-stat { text-align: center; }
-        .ref-stat-value { font-size: 20px; font-weight: 700; color: #fbbf24; }
-        .ref-stat-label { font-size: 11px; color: var(--tg-hint); }
-        .achievements-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .achievement { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .achievement.locked { opacity: 0.4; }
-        .achievement-icon { font-size: 24px; margin-bottom: 4px; }
-        .achievement-name { font-size: 11px; color: var(--tg-hint); }
+/* Payment modal */
+.pay-info { background:rgba(0,0,0,.15); border-radius:12px; padding:12px; margin-bottom:12px; }
+.pay-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+.pay-row:last-child { margin:0; }
+.pay-row .l { color:var(--hint); }
+.pay-row .v { font-weight:600; font-family:monospace; }
+.pay-row .v.addr { font-size:10px; word-break:break-all; text-align:right; max-width:55%; }
+.pay-comment-box { background:rgba(251,191,36,.08); border:1px dashed rgba(251,191,36,.3); border-radius:10px; padding:10px; font-size:12px; color:#fbbf24; text-align:center; margin-bottom:12px; font-family:monospace; }
+.copy-row { display:flex; gap:8px; margin-bottom:12px; }
+.copy-btn { flex:1; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:var(--text); border-radius:10px; padding:10px; font-size:12px; font-weight:600; cursor:pointer; }
+.copy-btn:active { background:rgba(255,255,255,.12); }
 
-        .floating-text { position: absolute; font-weight: 700; font-size: 16px; pointer-events: none; animation: floatUp 1s ease-out forwards; z-index: 1000; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.2); } }
+/* Profile */
+.p-card { background:linear-gradient(135deg,#1a2f52,#1e3a8a); border-radius:16px; padding:20px; text-align:center; margin-bottom:14px; position:relative; overflow:hidden; }
+.p-ava { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#38bdf8,#a855f7); display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 10px; border:3px solid rgba(255,255,255,.15); }
+.p-name { font-size:18px; font-weight:700; }
+.p-rank { font-size:12px; color:#fbbf24; margin-top:3px; }
+.p-sec { margin-bottom:18px; }
+.p-sec-title { font-size:15px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.p-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.w-card { background:rgba(255,255,255,.03); border-radius:14px; padding:14px; border:1px solid rgba(255,255,255,.05); margin-bottom:12px; }
+.w-status { display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:8px; }
+.w-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 6px #22c55e; }
+.w-dot.off { background:#ef4444; box-shadow:0 0 6px #ef4444; }
+.w-addr { font-family:monospace; font-size:11px; background:rgba(0,0,0,.15); padding:8px 10px; border-radius:8px; word-break:break-all; color:var(--hint); }
+.r-card { background:rgba(255,255,255,.03); border-radius:14px; padding:14px; border:1px solid rgba(255,255,255,.05); margin-bottom:12px; }
+.r-link { background:rgba(0,0,0,.12); border-radius:10px; padding:9px 11px; font-family:monospace; font-size:11px; word-break:break-all; color:#38bdf8; margin:8px 0; border:1px dashed rgba(56,189,248,.2); }
+.r-stats { display:flex; gap:14px; margin-top:8px; }
+.r-stat { text-align:center; }
+.r-stat-v { font-size:18px; font-weight:700; color:#fbbf24; }
+.r-stat-l { font-size:10px; color:var(--hint); }
+.ach-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.ach { background:rgba(255,255,255,.03); border-radius:12px; padding:10px; text-align:center; border:1px solid rgba(255,255,255,.04); }
+.ach.locked { opacity:.35; }
+.ach-icon { font-size:22px; margin-bottom:2px; }
+.ach-name { font-size:10px; color:var(--hint); }
 
-        .quest-toast { position: fixed; top: calc(var(--safe-top) + 60px); left: 16px; right: 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 14px 18px; border-radius: 14px; font-size: 14px; font-weight: 600; z-index: 500; transform: translateY(-100px); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 8px 32px rgba(245,158,11,0.3); }
-        .quest-toast.show { transform: translateY(0); }
+/* Daily */
+.streak { display:flex; justify-content:center; gap:5px; margin:14px 0; }
+.str-day { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); color:var(--hint); }
+.str-day.active { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-color:transparent; box-shadow:0 0 10px rgba(245,158,11,.25); }
+.str-day.done { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border-color:transparent; }
+.str-reward { font-size:32px; font-weight:800; text-align:center; color:#fbbf24; margin:6px 0; }
 
-        .copy-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: var(--tg-text); border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; margin-top: 8px; }
-        .copy-btn:active { background: rgba(255,255,255,0.15); }
-    </style>
+/* Floating */
+.float { position:fixed; font-weight:700; font-size:15px; pointer-events:none; animation:floatUp .9s ease-out forwards; z-index:1000; }
+@keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-35px) scale(1.15)} }
+</style>
 </head>
 <body>
-    <!-- Loading -->
-    <div id="loading">
-        <div class="loading-logo">🌍</div>
-        <div class="loading-title">OMNIVERSE</div>
-        <div style="color: var(--tg-hint); font-size: 14px;">Загрузка мира...</div>
-        <div class="loading-bar"><div class="loading-fill"></div></div>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="ld-logo">🌍</div>
+  <div class="ld-title">OMNIVERSE</div>
+  <div class="ld-sub">Загрузка мира...</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Daily Reward -->
+<div class="modal" id="modal-daily">
+  <div class="m-card">
+    <button class="m-close" onclick="game.closeModal('daily')">✕</button>
+    <div class="m-icon">🎁</div>
+    <div class="m-title">Ежедневная награда</div>
+    <div class="m-sub">Заходите каждый день — награды растут!</div>
+    <div class="streak" id="daily-streak"></div>
+    <div class="str-reward" id="daily-reward">+50💰</div>
+    <button class="m-btn gold" onclick="game.claimDaily()">🎁 Забрать награду</button>
+  </div>
+</div>
+
+<!-- Referral -->
+<div class="modal" id="modal-ref">
+  <div class="m-card">
+    <button class="m-close" onclick="game.closeModal('ref')">✕</button>
+    <div class="m-icon">🔗</div>
+    <div class="m-title">Пригласи друга</div>
+    <div class="m-sub">Получи 500💰 за каждого приглашённого!</div>
+    <div class="r-link" id="ref-link">https://t.me/...</div>
+    <button class="m-btn" onclick="game.copyRef()">📋 Копировать ссылку</button>
+    <button class="m-btn secondary" onclick="game.shareRef()">📤 Поделиться</button>
+  </div>
+</div>
+
+<!-- Wallet Connect -->
+<div class="modal" id="modal-wallet">
+  <div class="m-card">
+    <button class="m-close" onclick="game.closeModal('wallet')">✕</button>
+    <div class="m-icon">💎</div>
+    <div class="m-title">Подключить кошелёк</div>
+    <div class="m-sub">Выберите способ подключения TON</div>
+    <button class="m-btn" onclick="game.openWalletBot()">📱 @wallet (в Telegram)</button>
+    <button class="m-btn secondary" onclick="game.openTonkeeper()">🦊 Tonkeeper</button>
+    <button class="m-btn secondary" onclick="game.showWalletInput()">⌨️ Ввести адрес вручную</button>
+  </div>
+</div>
+
+<!-- Wallet Input -->
+<div class="modal" id="modal-wallet-input">
+  <div class="m-card">
+    <button class="m-close" onclick="game.closeModal('wallet-input')">✕</button>
+    <div class="m-icon">⌨️</div>
+    <div class="m-title">Введите адрес</div>
+    <div class="m-sub">Ваш TON-адрес (UQ... или EQ...)</div>
+    <input type="text" class="m-input" id="wallet-input-field" placeholder="UQ..." autocomplete="off">
+    <div class="m-error" id="wallet-input-error">❌ Неверный адрес. Должен начинаться с UQ или EQ</div>
+    <button class="m-btn" onclick="game.submitWallet()">💾 Сохранить адрес</button>
+  </div>
+</div>
+
+<!-- Payment -->
+<div class="modal" id="modal-payment">
+  <div class="m-card">
+    <button class="m-close" onclick="game.closeModal('payment')">✕</button>
+    <div class="m-icon">💳</div>
+    <div class="m-title" id="pay-title">Оплата</div>
+    <div class="m-sub">Скопируйте реквизиты и переведите</div>
+
+    <div class="pay-info">
+      <div class="pay-row"><span class="l">Товар</span><span class="v" id="pay-item">—</span></div>
+      <div class="pay-row"><span class="l">Сумма</span><span class="v" id="pay-amount">—</span></div>
+      <div class="pay-row"><span class="l">Адрес</span><span class="v addr" id="pay-addr">—</span></div>
     </div>
 
-    <div class="quest-toast" id="questToast">🎯</div>
-
-    <!-- Wallet Input Modal -->
-    <div class="modal-overlay" id="walletInputModal">
-        <div class="modal-card">
-            <button class="modal-close" onclick="game.closeWalletInputModal()">✕</button>
-            <div class="modal-icon">💎</div>
-            <div class="modal-title">Подключить кошелёк</div>
-            <div class="modal-subtitle">Введите ваш TON-адрес (UQ... или EQ...)</div>
-            <input type="text" id="walletInputField" placeholder="UQ... или EQ..." style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:var(--tg-text); font-family:monospace; font-size:14px; margin:12px 0; outline:none;">
-            <div id="walletInputError" style="color:#ef4444; font-size:12px; margin-bottom:8px; display:none;">❌ Неверный адрес. Должен начинаться с UQ или EQ</div>
-            <button class="modal-btn" onclick="game.submitWalletAddress()">💾 Сохранить адрес</button>
-            <button class="modal-btn secondary" onclick="game.openWalletBot()">🔗 Открыть @wallet</button>
-        </div>
+    <div class="pay-comment-box" id="pay-comment-box" style="display:none;">
+      Comment: <span id="pay-comment-text">OMNI_123</span>
     </div>
 
-    <!-- TonConnect Modal -->
-    <div class="modal-overlay" id="tonConnectModal">
-        <div class="modal-card">
-            <button class="modal-close" onclick="game.closeTonConnectModal()">✕</button>
-            <div class="modal-icon">🔗</div>
-            <div class="modal-title">TonConnect</div>
-            <div class="modal-subtitle">Выберите способ подключения</div>
-            <button class="modal-btn" onclick="game.openWalletBot()">📱 @wallet (Telegram)</button>
-            <button class="modal-btn secondary" onclick="game.openTonkeeper()">🦊 Tonkeeper</button>
-            <button class="modal-btn secondary" onclick="game.showWalletInputModal()">⌨️ Ввести адрес вручную</button>
-        </div>
-    </div>
-    <!-- Daily Reward Modal -->
-    <div class="modal-overlay" id="dailyModal">
-        <div class="modal-card">
-            <button class="modal-close" onclick="game.closeDailyModal()">✕</button>
-            <div class="modal-icon">🎁</div>
-            <div class="modal-title">Ежедневная награда</div>
-            <div class="modal-subtitle">Заходите каждый день — награды растут!</div>
-            <div class="daily-streak" id="dailyStreak"></div>
-            <div class="daily-reward-amount" id="dailyRewardAmount">+50💰</div>
-            <button class="modal-btn gold" onclick="game.claimDaily()">🎁 Забрать награду</button>
-        </div>
+    <div class="copy-row">
+      <button class="copy-btn" onclick="game.copyPayAddr()">📋 Адрес</button>
+      <button class="copy-btn" onclick="game.copyPayComment()">📋 Comment</button>
     </div>
 
-    <!-- Referral Info Modal -->
-    <div class="modal-overlay" id="refModal">
-        <div class="modal-card">
-            <button class="modal-close" onclick="game.closeRefModal()">✕</button>
-            <div class="modal-icon">🔗</div>
-            <div class="modal-title">Пригласи друга</div>
-            <div class="modal-subtitle">Получи 500💰 за каждого!</div>
-            <div class="ref-link" id="refLinkDisplay">https://t.me/...</div>
-            <button class="modal-btn" onclick="game.shareRef()">📤 Поделиться</button>
-            <button class="modal-btn secondary" onclick="game.copyRef()">📋 Копировать ссылку</button>
-        </div>
+    <button class="m-btn" id="pay-open-wallet" onclick="game.openPayWallet()">💎 Открыть @wallet</button>
+    <button class="m-btn green" onclick="game.checkPayment()">✅ Я оплатил — проверить</button>
+    <button class="m-btn secondary" onclick="game.closeModal('payment')">❌ Отмена</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="h-title" id="header-title">🌍 OMNIVERSE</div>
+    <div class="h-stats">
+      <div class="h-stat" style="color:#fbbf24;">💰 <span id="h-coins">0</span></div>
+      <div class="h-stat" style="color:#38bdf8;">⚡ <span id="h-energy">100</span></div>
+      <div class="h-stat" style="color:#a855f7;">⭐ <span id="h-level">1</span></div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- SCREEN: Map -->
+    <div class="screen active" id="screen-map">
+      <div class="map-wrap">
+        <div class="map-grid"></div>
+        <div class="map-zones" id="map-zones"></div>
+      </div>
+      <div style="margin-top:14px; font-size:12px; color:var(--hint); text-align:center;">Кликните на зону, чтобы начать</div>
     </div>
 
-    <!-- Payment Modal -->
-    <div class="modal-overlay" id="payModal">
-        <div class="modal-card">
-            <button class="modal-close" onclick="game.closePayModal()">✕</button>
-            <div class="modal-title" id="payTitle">Оплата</div>
-            <div class="modal-subtitle" id="paySubtitle">Выберите способ</div>
-            <div class="pay-detail">
-                <div class="pay-row"><span class="label">Товар</span><span class="value" id="payItem">—</span></div>
-                <div class="pay-row"><span class="label">Сумма</span><span class="value" id="payAmount">—</span></div>
-                <div class="pay-row" id="payAddressRow"><span class="label">Адрес</span><span class="value address" id="payAddress">—</span></div>
-            </div>
-            <div class="pay-comment" id="payComment" style="display:none;">Comment: OMNI_123</div>
-            <div class="pay-actions">
-                <button class="pay-btn" id="payPrimaryBtn" onclick="game.confirmPayment()">Оплатить</button>
-                <button class="pay-btn secondary" onclick="game.closePayModal()">Отмена</button>
-            </div>
+    <!-- SCREEN: Zone -->
+    <div class="screen" id="screen-zone">
+      <div id="zone-detail" style="display:none; flex-direction:column; gap:14px;">
+        <div class="z-hero" id="z-hero">
+          <div class="z-hero-icon" id="z-icon">🌾</div>
+          <div class="z-hero-name" id="z-name">Ферма</div>
+          <div class="z-hero-desc" id="z-desc">Симулятор</div>
         </div>
+        <div class="z-grid">
+          <div class="z-box"><div class="z-val" id="z-lvl">1</div><div class="z-label">Уровень</div></div>
+          <div class="z-box"><div class="z-val" id="z-inc">5</div><div class="z-label">Доход/клик</div></div>
+          <div class="z-box"><div class="z-val" id="z-tot">0</div><div class="z-label">Всего</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-h"><span>Прогресс</span><span id="z-progress-text">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="z-progress-bar" style="width:0%"></div></div>
+        </div>
+        <button class="act-btn" id="btn-work" onclick="game.work()">🔨 Работать <span style="font-size:12px;opacity:.8;">(-5⚡ +<span id="work-reward">5</span>💰)</span></button>
+        <button class="act-btn upg" id="btn-upg" onclick="game.upgrade()">⬆️ Улучшить <span style="font-size:12px;opacity:.8;">(<span id="upg-cost">50</span>💰)</span></button>
+        <button class="act-btn sec" onclick="game.backToMap()">🗺️ На карту</button>
+        <div class="log" id="zone-log"><div class="log-entry">Зона загружена. Начните работать!</div></div>
+      </div>
     </div>
 
-    <div id="app">
-        <div class="header">
-            <div class="header-title" id="headerTitle">🌍 OMNIVERSE</div>
-            <div class="header-stats">
-                <div class="header-stat coins">💰 <span id="hCoins">0</span></div>
-                <div class="header-stat energy">⚡ <span id="hEnergy">100</span></div>
-                <div class="header-stat xp">⭐ <span id="hXP">1</span></div>
-            </div>
-        </div>
-
-        <div class="content" id="content">
-            <!-- MAP -->
-            <div class="screen active" id="screen-map">
-                <div class="map-container">
-                    <div class="map-grid"></div>
-                    <div class="map-zones" id="mapZones"></div>
-                </div>
-                <div style="margin-top: 16px; font-size: 13px; color: var(--tg-hint); text-align: center;">Кликните на зону, чтобы начать симуляцию</div>
-            </div>
-
-            <!-- ZONE -->
-            <div class="screen" id="screen-zone">
-                <div class="zone-detail" id="zoneDetail">
-                    <div class="zone-hero" id="zoneHero">
-                        <div class="zone-hero-icon" id="zIcon">🌾</div>
-                        <div class="zone-hero-name" id="zName">Ферма</div>
-                        <div class="zone-hero-desc" id="zDesc">Симулятор фермера</div>
-                    </div>
-                    <div class="zone-stats-grid">
-                        <div class="zone-stat-box"><div class="zone-stat-value" id="zLevel">1</div><div class="zone-stat-label">Уровень</div></div>
-                        <div class="zone-stat-box"><div class="zone-stat-value" id="zIncome">5</div><div class="zone-stat-label">Доход/клик</div></div>
-                        <div class="zone-stat-box"><div class="zone-stat-value" id="zTotal">0</div><div class="zone-stat-label">Всего заработано</div></div>
-                    </div>
-                    <div class="progress-section">
-                        <div class="progress-header"><span>Прогресс зоны</span><span id="zProgressText">0%</span></div>
-                        <div class="progress-bar"><div class="progress-fill" id="zProgressBar" style="width: 0%"></div></div>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="action-btn" id="btnWork" onclick="game.work()">🔨 Работать <span class="btn-cost">(-5⚡ +<span id="workReward">5</span>💰)</span></button>
-                        <button class="action-btn upgrade" id="btnUpgrade" onclick="game.upgrade()">⬆️ Улучшить <span class="btn-cost">(<span id="upgradeCost">50</span>💰)</span></button>
-                        <button class="action-btn secondary" onclick="game.backToMap()">🗺️ Вернуться на карту</button>
-                    </div>
-                    <div class="log-panel" id="zoneLog"><div class="log-entry">Зона загружена. Начните работать!</div></div>
-                </div>
-            </div>
-
-            <!-- SHOP -->
-            <div class="screen" id="screen-shop">
-                <h2 style="margin-bottom: 12px; font-size: 20px;">🏪 Магазин</h2>
-                <div class="currency-tabs">
-                    <button class="currency-tab active" onclick="game.setCurrency('stars')">⭐ Stars</button>
-                    <button class="currency-tab" onclick="game.setCurrency('gram')">💎 Gram</button>
-                    <button class="currency-tab" onclick="game.setCurrency('salt')">🧂 Salt</button>
-                </div>
-                <div class="shop-grid" id="shopGrid"></div>
-            </div>
-
-            <!-- PROFILE -->
-            <div class="screen" id="screen-profile">
-                <div class="profile-card">
-                    <div class="profile-avatar" id="pAvatar">👤</div>
-                    <div class="profile-name" id="pName">Игрок</div>
-                    <div class="profile-rank" id="pRank">🏆 Новичок</div>
-                </div>
-
-                <!-- Wallet Section -->
-                <div class="profile-section">
-                    <div class="section-title">💎 TON-кошелек</div>
-                    <div class="wallet-card" id="walletCard">
-                        <div class="wallet-status" id="walletStatus">
-                            <span class="dot offline" id="walletDot"></span>
-                            <span id="walletStatusText">Кошелёк не подключён</span>
-                        </div>
-                        <div class="wallet-address" id="walletAddress" style="display:none;"></div>
-                        <button class="action-btn" style="margin-top:10px; padding:12px; font-size:14px;" onclick="game.connectWallet()">🔗 Подключить @wallet</button>
-                    </div>
-                </div>
-
-                <!-- Referral Section -->
-                <div class="profile-section">
-                    <div class="section-title">🔗 Реферальная программа</div>
-                    <div class="ref-card">
-                        <div style="font-size:13px; color:var(--tg-hint); margin-bottom:6px;">Пригласите друзей — получите 500💰 за каждого!</div>
-                        <div class="ref-stats">
-                            <div class="ref-stat"><div class="ref-stat-value" id="refCount">0</div><div class="ref-stat-label">Приглашено</div></div>
-                            <div class="ref-stat"><div class="ref-stat-value" id="refEarned">0</div><div class="ref-stat-label">Заработано</div></div>
-                        </div>
-                        <button class="action-btn secondary" style="margin-top:12px; padding:12px; font-size:14px;" onclick="game.showRefModal()">🔗 Получить реферальную ссылку</button>
-                    </div>
-                </div>
-
-                <!-- Stats -->
-                <div class="profile-section">
-                    <div class="section-title">📊 Статистика</div>
-                    <div class="profile-stats-grid">
-                        <div class="zone-stat-box"><div class="zone-stat-value" id="pClicks">0</div><div class="zone-stat-label">Кликов</div></div>
-                        <div class="zone-stat-box"><div class="zone-stat-value" id="pMoney">0</div><div class="zone-stat-label">Заработано</div></div>
-                        <div class="zone-stat-box"><div class="zone-stat-value" id="pUpgrades">0</div><div class="zone-stat-label">Улучшений</div></div>
-                    </div>
-                </div>
-
-                <!-- Daily Reward Button -->
-                <button class="action-btn gold" style="margin-bottom:16px;" onclick="game.showDailyModal()">🎁 Ежедневная награда</button>
-
-                <!-- Leaderboard Button -->
-                <button class="action-btn" style="margin-bottom:16px; background: linear-gradient(135deg, #a855f7, #7c3aed);" onclick="game.getLeaderboard()">🏆 Глобальный рейтинг</button>
-
-                <!-- Sync Button -->
-                <button class="action-btn secondary" style="margin-bottom:16px;" onclick="game.syncData()">🔄 Синхронизировать прогресс</button>
-
-                <!-- Achievements -->
-                <div class="profile-section">
-                    <div class="section-title">🏅 Достижения</div>
-                    <div class="achievements-grid" id="achievementsGrid"></div>
-                </div>
-
-                <button class="action-btn secondary" style="margin-top: 8px;" onclick="game.saveCloud()">💾 Сохранить в облако</button>
-            </div>
-        </div>
-
-        <div class="nav-bar">
-            <button class="nav-item active" onclick="game.nav('map')"><span class="nav-icon">🗺️</span><span>Карта</span></button>
-            <button class="nav-item" onclick="game.nav('shop')"><span class="nav-icon">🏪</span><span>Магазин</span></button>
-            <button class="nav-item" onclick="game.nav('profile')"><span class="nav-icon">👤</span><span>Профиль</span></button>
-        </div>
+    <!-- SCREEN: Shop -->
+    <div class="screen" id="screen-shop">
+      <div style="font-size:18px; font-weight:700; margin-bottom:12px;">🏪 Магазин</div>
+      <div class="cur-tabs">
+        <button class="cur-tab active" onclick="game.setCurrency('stars')">⭐ Stars</button>
+        <button class="cur-tab" onclick="game.setCurrency('gram')">💎 Gram</button>
+        <button class="cur-tab" onclick="game.setCurrency('salt')">🧂 Salt</button>
+      </div>
+      <div class="shop-grid" id="shop-grid"></div>
     </div>
 
-    <script>
-    let tg = window.Telegram.WebApp;
-    tg.ready(); tg.expand(); tg.enableClosingConfirmation();
-    tg.setHeaderColor(tg.themeParams.bg_color || '#0f0f23');
-    tg.setBackgroundColor(tg.themeParams.bg_color || '#0f0f23');
+    <!-- SCREEN: Profile -->
+    <div class="screen" id="screen-profile">
+      <div class="p-card">
+        <div class="p-ava" id="p-ava">👤</div>
+        <div class="p-name" id="p-name">Игрок</div>
+        <div class="p-rank" id="p-rank">🏆 Новичок</div>
+      </div>
 
-    const ZONES = [
-        { id: 'farm', name: 'Ферма', icon: '🌾', color: '#22c55e', desc: 'Сажайте, собирайте, развивайте агробизнес', baseIncome: 5, baseCost: 50, maxLevel: 50 },
-        { id: 'city', name: 'Мегаполис', icon: '🏙️', color: '#3b82f6', desc: 'Стройте город мечты', baseIncome: 8, baseCost: 80, maxLevel: 50 },
-        { id: 'flight', name: 'Авиация', icon: '✈️', color: '#0ea5e9', desc: 'Покоряйте небо', baseIncome: 12, baseCost: 120, maxLevel: 50 },
-        { id: 'survival', name: 'Выживание', icon: '🔥', color: '#f97316', desc: 'Дикая природа ждёт', baseIncome: 6, baseCost: 60, maxLevel: 50 },
-        { id: 'space', name: 'Космос', icon: '🚀', color: '#a855f7', desc: 'Осваивайте галактику', baseIncome: 20, baseCost: 200, maxLevel: 50 },
-        { id: 'race', name: 'Гонки', icon: '🏎️', color: '#ef4444', desc: 'Скорость — твой друг', baseIncome: 15, baseCost: 150, maxLevel: 50 },
-        { id: 'sea', name: 'Море', icon: '⚓', color: '#14b8a6', desc: 'Покоряйте океан', baseIncome: 10, baseCost: 100, maxLevel: 50 },
-        { id: 'construction', name: 'Стройка', icon: '🏗️', color: '#eab308', desc: 'Стройте будущее', baseIncome: 9, baseCost: 90, maxLevel: 50 },
-        { id: 'medical', name: 'Медицина', icon: '🏥', color: '#ec4899', desc: 'Спасайте жизни', baseIncome: 14, baseCost: 140, maxLevel: 50 },
-        { id: 'cooking', name: 'Кухня', icon: '👨\u200d🍳', color: '#f97316', desc: 'Готовьте шедевры', baseIncome: 7, baseCost: 70, maxLevel: 50 }
-    ];
+      <div class="p-sec">
+        <div class="p-sec-title">💎 TON-кошелёк</div>
+        <div class="w-card">
+          <div class="w-status">
+            <span class="w-dot" id="w-dot"></span>
+            <span id="w-status">Не подключён</span>
+          </div>
+          <div class="w-addr" id="w-addr" style="display:none;"></div>
+          <button class="act-btn" style="margin-top:10px; padding:12px; font-size:14px;" onclick="game.showWalletConnect()">🔗 Подключить кошелёк</button>
+        </div>
+      </div>
 
-    const SHOP_ITEMS = [
-        { id: 'energy_potion', name: 'Энергетик', icon: '⚡', desc: 'Мгновенно +50 энергии', prices: { stars: 10, gram: 0.1, salt: 100 }, effect: 'energy+50' },
-        { id: 'mega_potion', name: 'Мега-энергия', icon: '🔋', desc: 'Мгновенно +200 энергии', prices: { stars: 35, gram: 0.35, salt: 350 }, effect: 'energy+200' },
-        { id: 'auto_click', name: 'Автокликер', icon: '🤖', desc: 'Авто-работа 30 сек', prices: { stars: 50, gram: 0.5, salt: 500 }, effect: 'auto30' },
-        { id: 'xp_boost', name: 'XP x2', icon: '⭐', desc: 'Удвоение опыта на 5 мин', prices: { stars: 80, gram: 0.8, salt: 800 }, effect: 'xpx2' },
-        { id: 'income_boost', name: 'Доход x2', icon: '💰', desc: 'Удвоение дохода на 5 мин', prices: { stars: 100, gram: 1.0, salt: 1000 }, effect: 'incomex2' },
-        { id: 'max_energy', name: '+20 Макс. Энергии', icon: '⬆️', desc: 'Постоянное увеличение', prices: { stars: 200, gram: 2.0, salt: 2000 }, effect: 'maxenergy+20' }
-    ];
+      <div class="p-sec">
+        <div class="p-sec-title">🔗 Реферальная программа</div>
+        <div class="r-card">
+          <div style="font-size:12px; color:var(--hint); margin-bottom:4px;">Пригласите друзей — получите 500💰 за каждого!</div>
+          <div class="r-stats">
+            <div class="r-stat"><div class="r-stat-v" id="r-count">0</div><div class="r-stat-l">Приглашено</div></div>
+            <div class="r-stat"><div class="r-stat-v" id="r-earn">0</div><div class="r-stat-l">Заработано</div></div>
+          </div>
+          <button class="act-btn sec" style="margin-top:10px; padding:12px; font-size:14px;" onclick="game.showRefModal()">🔗 Получить ссылку</button>
+        </div>
+      </div>
 
-    const ACHIEVEMENTS = [
-        { id: 'first_click', name: 'Первый шаг', icon: '👆', req: d => d.totalClicks >= 1 },
-        { id: 'rich', name: 'Богач', icon: '💎', req: d => d.coins >= 1000 },
-        { id: 'hardworker', name: 'Трудоголик', icon: '🔨', req: d => d.totalClicks >= 100 },
-        { id: 'investor', name: 'Инвестор', icon: '📈', req: d => d.totalUpgrades >= 10 },
-        { id: 'explorer', name: 'Исследователь', icon: '🧭', req: d => Object.values(d.zones).filter(z => z.level > 1).length >= 3 },
-        { id: 'master', name: 'Мастер', icon: '👑', req: d => Object.values(d.zones).some(z => z.level >= 10) },
-        { id: 'tycoon', name: 'Магнат', icon: '🏆', req: d => d.coins >= 10000 },
-        { id: 'omni', name: 'OMNI', icon: '🌍', req: d => Object.values(d.zones).every(z => z.level >= 5) }
-    ];
+      <div class="p-sec">
+        <div class="p-sec-title">📊 Статистика</div>
+        <div class="p-grid">
+          <div class="z-box"><div class="z-val" id="p-clicks">0</div><div class="z-label">Кликов</div></div>
+          <div class="z-box"><div class="z-val" id="p-money">0</div><div class="z-label">Заработано</div></div>
+          <div class="z-box"><div class="z-val" id="p-upgs">0</div><div class="z-label">Улучшений</div></div>
+        </div>
+      </div>
 
-    const DAILY_REWARDS = [50, 100, 150, 200, 250, 300, 500];
+      <button class="act-btn gold" style="margin-bottom:12px;" onclick="game.showDailyModal()">🎁 Ежедневная награда</button>
+      <button class="act-btn" style="margin-bottom:12px; background:linear-gradient(135deg,#a855f7,#7c3aed);" onclick="game.getLeaderboard()">🏆 Глобальный рейтинг</button>
+      <button class="act-btn sec" style="margin-bottom:12px;" onclick="game.syncData()">🔄 Синхронизировать</button>
 
-    const CONFIG = {
-        botUsername: 'Omni_verse_bot',  // ЗАМЕНИТЕ!
-        tonWalletAddress: 'UQChXAeOZWWoKjFaB63erj370FjfRyonebj35hwuNDK65n8R',  // ЗАМЕНИТЕ!
-        saltJettonMaster: 'EQCCAp4wdRXFc_E-gzD7TfDK06sQiozahEL6P38towrJZk_a'
+      <div class="p-sec">
+        <div class="p-sec-title">🏅 Достижения</div>
+        <div class="ach-grid" id="ach-grid"></div>
+      </div>
+
+      <button class="act-btn sec" onclick="game.saveCloud()">💾 Сохранить в облако</button>
+    </div>
+
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="nav-item active" onclick="game.nav('map')"><span class="nav-icon">🗺️</span><span>Карта</span></button>
+    <button class="nav-item" onclick="game.nav('shop')"><span class="nav-icon">🏪</span><span>Магазин</span></button>
+    <button class="nav-item" onclick="game.nav('profile')"><span class="nav-icon">👤</span><span>Профиль</span></button>
+  </div>
+
+</div>
+
+<script>
+// ===== TELEGRAM =====
+let tg = window.Telegram.WebApp;
+tg.ready(); tg.expand(); tg.enableClosingConfirmation();
+tg.setHeaderColor(tg.themeParams.bg_color || '#0b0b1a');
+tg.setBackgroundColor(tg.themeParams.bg_color || '#0b0b1a');
+
+// ===== CONFIG =====
+const CONFIG = {
+  botUsername: 'Omni_verse_bot',
+  tonWalletAddress: 'UQChXAeOZWWoKjFaB63erj370FjfRyonebj35hwuNDK65n8R',
+  saltJettonMaster: 'EQCCAp4wdRXFc_E-gzD7TfDK06sQiozahEL6P38towrJZk_a'
+};
+
+// ===== DATA =====
+const ZONES = [
+  {id:'farm', name:'Ферма', icon:'🌾', color:'#22c55e', desc:'Сажайте, собирайте, развивайте агробизнес', baseIncome:5, baseCost:50, maxLevel:50},
+  {id:'city', name:'Мегаполис', icon:'🏙️', color:'#3b82f6', desc:'Стройте город мечты', baseIncome:8, baseCost:80, maxLevel:50},
+  {id:'flight', name:'Авиация', icon:'✈️', color:'#0ea5e9', desc:'Покоряйте небо', baseIncome:12, baseCost:120, maxLevel:50},
+  {id:'survival', name:'Выживание', icon:'🔥', color:'#f97316', desc:'Дикая природа ждёт', baseIncome:6, baseCost:60, maxLevel:50},
+  {id:'space', name:'Космос', icon:'🚀', color:'#a855f7', desc:'Осваивайте галактику', baseIncome:20, baseCost:200, maxLevel:50},
+  {id:'race', name:'Гонки', icon:'🏎️', color:'#ef4444', desc:'Скорость — твой друг', baseIncome:15, baseCost:150, maxLevel:50},
+  {id:'sea', name:'Море', icon:'⚓', color:'#14b8a6', desc:'Покоряйте океан', baseIncome:10, baseCost:100, maxLevel:50},
+  {id:'construction', name:'Стройка', icon:'🏗️', color:'#eab308', desc:'Стройте будущее', baseIncome:9, baseCost:90, maxLevel:50},
+  {id:'medical', name:'Медицина', icon:'🏥', color:'#ec4899', desc:'Спасайте жизни', baseIncome:14, baseCost:140, maxLevel:50},
+  {id:'cooking', name:'Кухня', icon:'👨\u200d🍳', color:'#f97316', desc:'Готовьте шедевры', baseIncome:7, baseCost:70, maxLevel:50}
+];
+
+const SHOP_ITEMS = [
+  {id:'energy_potion', name:'Энергетик', icon:'⚡', desc:'Мгновенно +50 энергии', prices:{stars:10, gram:0.1, salt:100}, effect:'energy+50'},
+  {id:'mega_potion', name:'Мега-энергия', icon:'🔋', desc:'Мгновенно +200 энергии', prices:{stars:35, gram:0.35, salt:350}, effect:'energy+200'},
+  {id:'auto_click', name:'Автокликер', icon:'🤖', desc:'Авто-работа 30 сек', prices:{stars:50, gram:0.5, salt:500}, effect:'auto30'},
+  {id:'xp_boost', name:'XP x2', icon:'⭐', desc:'Удвоение XP 5 мин', prices:{stars:80, gram:0.8, salt:800}, effect:'xpx2'},
+  {id:'income_boost', name:'Доход x2', icon:'💰', desc:'Удвоение дохода 5 мин', prices:{stars:100, gram:1.0, salt:1000}, effect:'incomex2'},
+  {id:'max_energy', name:'+20 Макс. Энергии', icon:'⬆️', desc:'Постоянное увеличение', prices:{stars:200, gram:2.0, salt:2000}, effect:'maxenergy+20'}
+];
+
+const ACHIEVEMENTS = [
+  {id:'first_click', name:'Первый шаг', icon:'👆', req:d=>d.totalClicks>=1},
+  {id:'rich', name:'Богач', icon:'💎', req:d=>d.coins>=1000},
+  {id:'hardworker', name:'Трудоголик', icon:'🔨', req:d=>d.totalClicks>=100},
+  {id:'investor', name:'Инвестор', icon:'📈', req:d=>d.totalUpgrades>=10},
+  {id:'explorer', name:'Исследователь', icon:'🧭', req:d=>Object.values(d.zones).filter(z=>z.level>1).length>=3},
+  {id:'master', name:'Мастер', icon:'👑', req:d=>Object.values(d.zones).some(z=>z.level>=10)},
+  {id:'tycoon', name:'Магнат', icon:'🏆', req:d=>d.coins>=10000},
+  {id:'omni', name:'OMNI', icon:'🌍', req:d=>Object.values(d.zones).every(z=>z.level>=5)}
+];
+
+const DAILY_REWARDS = [50,100,150,200,250,300,500];
+
+// ===== GAME =====
+class Game {
+  constructor() {
+    this.data = this.load();
+    this.currentZone = null;
+    this.boosts = {xp:0, income:0};
+    this.autoInt = null;
+    this.shopCur = 'stars';
+    this.pendingPay = null;
+    this.init();
+  }
+
+  defaultData() {
+    const z = {};
+    ZONES.forEach(x=>z[x.id]={level:1,totalEarned:0,clicks:0});
+    return {
+      coins:0, xp:0, level:1, energy:100, maxEnergy:100,
+      totalClicks:0, totalUpgrades:0, totalEarned:0,
+      zones:z, achievements:[],
+      lastEnergyUpdate:Date.now(),
+      lastDaily:null, dailyStreak:0,
+      walletAddr:'', walletConnected:false,
+      referralsCount:0, referralEarned:0,
+      user: tg.initDataUnsafe?.user?.first_name || 'Игрок',
+      userId: tg.initDataUnsafe?.user?.id || 0
     };
+  }
 
-    class Game {
-        constructor() {
-            this.data = this.load();
-            this.currentZone = null;
-            this.boosts = { xp: 0, income: 0 };
-            this.autoClickInterval = null;
-            this.shopCurrency = 'stars';
-            this.pendingPayment = null;
-            this.init();
-        }
+  load() { try{const s=localStorage.getItem('omni_v3'); if(s)return JSON.parse(s);}catch(e){} return this.defaultData(); }
+  save() { try{localStorage.setItem('omni_v3',JSON.stringify(this.data));}catch(e){} this.updateHeader(); }
+  saveCloud() {
+    if(!tg.CloudStorage){ this.showToast('💾 CloudStorage недоступен'); return; }
+    tg.CloudStorage.setItem('omni_v3',JSON.stringify(this.data),(err)=>{
+      if(!err){this.showToast('💾 Сохранено в облако!'); tg.HapticFeedback.notificationOccurred('success');}
+      else this.showToast('❌ Ошибка сохранения');
+    });
+  }
+  loadCloud() {
+    if(!tg.CloudStorage) return;
+    tg.CloudStorage.getItem('omni_v3',(err,val)=>{
+      if(!err && val){ try{this.data=JSON.parse(val); this.renderMap(); this.updateHeader(); this.renderProfile(); this.showToast('☁️ Прогресс загружен!');}catch(e){} }
+    });
+  }
 
-        defaultData() {
-            const zones = {};
-            ZONES.forEach(z => { zones[z.id] = { level: 1, totalEarned: 0, clicks: 0 }; });
-            return {
-                coins: 0, xp: 0, level: 1, energy: 100, maxEnergy: 100,
-                totalClicks: 0, totalUpgrades: 0, totalEarned: 0,
-                zones: zones, shop: {}, achievements: [],
-                lastEnergyUpdate: Date.now(),
-                lastDailyClaim: null, dailyStreak: 0,
-                walletAddress: '', walletConnected: false,
-                referralsCount: 0, referralEarned: 0,
-                user: tg.initDataUnsafe?.user?.first_name || 'Игрок',
-                userId: tg.initDataUnsafe?.user?.id || 0
-            };
-        }
+  init() {
+    this.renderMap(); this.renderShop(); this.renderProfile(); this.updateHeader(); this.regenEnergy(); this.loadCloud();
+    this.checkReferral(); this.checkDaily();
+    setInterval(()=>this.save(),10000);
+    setInterval(()=>this.regenEnergy(),10000);
+    setInterval(()=>{if(this.boosts.xp>0)this.boosts.xp--; if(this.boosts.income>0)this.boosts.income--;},1000);
+    setInterval(()=>{if(this.currentZone && Math.random()>.7) this.randomEvent();},15000);
+    setTimeout(()=>{document.getElementById('loading').classList.add('hidden'); document.getElementById('app').classList.add('active'); tg.HapticFeedback.notificationOccurred('success');},1600);
+  }
 
-        load() { try { const s = localStorage.getItem('omniverse_save_v3'); if (s) return JSON.parse(s); } catch(e) {} return this.defaultData(); }
-        save() { try { localStorage.setItem('omniverse_save_v3', JSON.stringify(this.data)); } catch(e) {} this.updateHeader(); }
+  // --- Header ---
+  updateHeader() {
+    document.getElementById('h-coins').textContent = this.fmt(this.data.coins);
+    document.getElementById('h-energy').textContent = Math.floor(this.data.energy);
+    document.getElementById('h-level').textContent = this.data.level;
+  }
+  fmt(n){ if(n>=1e6)return(n/1e6).toFixed(1)+'M'; if(n>=1e3)return(n/1e3).toFixed(1)+'K'; return Math.floor(n)+''; }
+  regenEnergy() { const now=Date.now(); const diff=Math.floor((now-this.data.lastEnergyUpdate)/1000); if(diff>0){this.data.energy=Math.min(this.data.maxEnergy,this.data.energy+diff*2); this.data.lastEnergyUpdate=now; this.updateHeader();} }
 
-        saveCloud() {
-            if (tg.CloudStorage) {
-                tg.CloudStorage.setItem('omniverse_save_v3', JSON.stringify(this.data), (err) => {
-                    if (!err) { this.showToast('💾 Сохранено в облако!'); tg.HapticFeedback.notificationOccurred('success'); }
-                    else this.showToast('❌ Ошибка сохранения');
-                });
-            } else { this.showToast('💾 CloudStorage недоступен'); }
-        }
-        loadCloud() {
-            if (tg.CloudStorage) {
-                tg.CloudStorage.getItem('omniverse_save_v3', (err, val) => {
-                    if (!err && val) { try { this.data = JSON.parse(val); this.showToast('☁️ Прогресс загружен!'); this.renderMap(); this.updateHeader(); this.renderProfile(); } catch(e) {} }
-                });
-            }
-        }
+  // --- Nav ---
+  nav(screen) {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('screen-'+screen).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if(screen==='profile') this.renderProfile();
+    if(screen==='shop') this.renderShop();
+    tg.HapticFeedback.impactOccurred('light');
+  }
 
-        init() {
-            this.renderMap(); this.renderShop(); this.renderProfile(); this.updateHeader(); this.regenEnergy(); this.loadCloud();
-            this.checkReferral();
-            this.checkDailyReward();
-            setInterval(() => this.save(), 10000);
-            setInterval(() => this.regenEnergy(), 10000);
-            setInterval(() => { if (this.boosts.xp > 0) this.boosts.xp--; if (this.boosts.income > 0) this.boosts.income--; }, 1000);
-            setInterval(() => { if (this.currentZone && Math.random() > 0.7) this.triggerRandomEvent(); }, 15000);
-            setTimeout(() => { document.getElementById('loading').classList.add('hidden'); document.getElementById('app').classList.add('active'); tg.HapticFeedback.notificationOccurred('success'); }, 1500);
-        }
+  // --- Map ---
+  renderMap() {
+    const g = document.getElementById('map-zones'); g.innerHTML='';
+    ZONES.forEach(z=>{
+      const d = this.data.zones[z.id];
+      const el = document.createElement('div'); el.className='zone-card';
+      el.style.setProperty('--zc', z.color);
+      el.innerHTML = `<div class="z-icon">${z.icon}</div><div class="z-name">${z.name}</div><div class="z-lvl">Ур. ${d.level}</div><div class="z-inc">+${this.getInc(z.id)}💰</div>`;
+      el.onclick = ()=>this.enterZone(z);
+      g.appendChild(el);
+    });
+  }
+  enterZone(z) {
+    this.currentZone = z;
+    document.getElementById('screen-map').classList.remove('active');
+    document.getElementById('screen-zone').classList.add('active');
+    document.getElementById('zone-detail').style.display='flex';
+    document.getElementById('header-title').textContent = z.icon+' '+z.name;
+    document.getElementById('z-hero').style.background = `linear-gradient(135deg,${z.color}22,rgba(0,0,0,.25))`;
+    document.getElementById('z-hero').style.setProperty('--zc', z.color);
+    document.getElementById('z-icon').textContent = z.icon;
+    document.getElementById('z-name').textContent = z.name;
+    document.getElementById('z-desc').textContent = z.desc;
+    this.updateZoneUI();
+    tg.HapticFeedback.impactOccurred('medium');
+    tg.BackButton.show();
+    tg.BackButton.onClick(()=>this.backToMap());
+  }
+  backToMap() {
+    this.currentZone = null;
+    document.getElementById('screen-zone').classList.remove('active');
+    document.getElementById('zone-detail').style.display='none';
+    document.getElementById('screen-map').classList.add('active');
+    document.getElementById('header-title').textContent = '🌍 OMNIVERSE';
+    tg.BackButton.hide();
+    tg.HapticFeedback.impactOccurred('light');
+  }
 
-        // ===== REFERRAL =====
-        checkReferral() {
-            const startParam = tg.initDataUnsafe?.start_param;
-            if (startParam && startParam.startsWith('ref_') && !this.data.referralChecked) {
-                this.data.referralChecked = true;
-                this.save();
-                // Отправляем боту для обработки (бот уже обработал при /start, но на всякий случай)
-                tg.sendData(JSON.stringify({ action: 'referral_check', ref: startParam, user_id: this.data.userId }));
-                this.showToast('🎉 Реферальный бонус активирован!');
-            }
-        }
+  // --- Zone ---
+  updateZoneUI() {
+    if(!this.currentZone) return;
+    const zd = this.data.zones[this.currentZone.id];
+    const inc = this.getInc(this.currentZone.id);
+    const cost = this.getUpgCost(this.currentZone.id);
+    const prog = Math.min(100, (zd.level/this.currentZone.maxLevel)*100);
+    document.getElementById('z-lvl').textContent = zd.level;
+    document.getElementById('z-inc').textContent = inc;
+    document.getElementById('z-tot').textContent = this.fmt(zd.totalEarned);
+    document.getElementById('z-progress-text').textContent = Math.floor(prog)+'%';
+    document.getElementById('z-progress-bar').style.width = prog+'%';
+    document.getElementById('work-reward').textContent = inc;
+    document.getElementById('upg-cost').textContent = cost;
+    document.getElementById('btn-work').disabled = this.data.energy < 5;
+    const btnUpg = document.getElementById('btn-upg');
+    btnUpg.disabled = this.data.coins < cost || zd.level >= this.currentZone.maxLevel;
+    if(zd.level >= this.currentZone.maxLevel) btnUpg.innerHTML = '✅ Максимум';
+    else btnUpg.innerHTML = `⬆️ Улучшить <span style="font-size:12px;opacity:.8;">(${cost}💰)</span>`;
+  }
+  getInc(id){ const z=ZONES.find(x=>x.id===id); const d=this.data.zones[id]; let v=Math.floor(z.baseIncome*Math.pow(1.15,d.level-1)); if(this.boosts.income>0)v*=2; return v; }
+  getUpgCost(id){ const z=ZONES.find(x=>x.id===id); const d=this.data.zones[id]; return Math.floor(z.baseCost*Math.pow(1.5,d.level-1)); }
 
-        getRefLink() {
-            const uid = this.data.userId || 'unknown';
-            return `https://t.me/${CONFIG.botUsername}?start=ref_${uid}`;
-        }
-
-        showRefModal() {
-            const link = this.getRefLink();
-            document.getElementById('refLinkDisplay').textContent = link;
-            document.getElementById('refModal').classList.add('active');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        closeRefModal() { document.getElementById('refModal').classList.remove('active'); }
-
-        shareRef() {
-            const link = this.getRefLink();
-            const text = encodeURIComponent('Присоединяйся к OMNIVERSE! Все симуляторы в одной игре 🌍');
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`);
-        }
-
-        copyRef() {
-            const link = this.getRefLink();
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(link).then(() => this.showToast('📋 Ссылка скопирована!'));
-            } else {
-                tg.showAlert('Скопируйте ссылку:\n' + link);
-            }
-        }
-
-        // ===== DAILY REWARDS =====
-        checkDailyReward() {
-            const today = new Date().toDateString();
-            const lastClaim = this.data.lastDailyClaim ? new Date(this.data.lastDailyClaim).toDateString() : null;
-
-            if (lastClaim !== today) {
-                // Проверяем, не пропустил ли день (streak сбрасывается)
-                if (this.data.lastDailyClaim) {
-                    const lastDate = new Date(this.data.lastDailyClaim);
-                    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                    if (lastDate.toDateString() !== yesterday.toDateString()) {
-                        this.data.dailyStreak = 0; // Сброс streak
-                    }
-                }
-                setTimeout(() => this.showDailyModal(), 2000);
-            }
-        }
-
-        showDailyModal() {
-            const streak = this.data.dailyStreak || 0;
-            const reward = DAILY_REWARDS[Math.min(streak, DAILY_REWARDS.length - 1)];
-            const container = document.getElementById('dailyStreak');
-            container.innerHTML = '';
-            for (let i = 0; i < 7; i++) {
-                const day = document.createElement('div');
-                day.className = 'streak-day';
-                if (i < streak) day.classList.add('claimed');
-                else if (i === streak) day.classList.add('active');
-                day.textContent = i + 1;
-                container.appendChild(day);
-            }
-            document.getElementById('dailyRewardAmount').textContent = `+${reward}💰`;
-            document.getElementById('dailyModal').classList.add('active');
-        }
-        closeDailyModal() { document.getElementById('dailyModal').classList.remove('active'); }
-
-        claimDaily() {
-            const today = new Date().toDateString();
-            const lastClaim = this.data.lastDailyClaim ? new Date(this.data.lastDailyClaim).toDateString() : null;
-            if (lastClaim === today) { this.showToast('🎁 Вы уже забрали награду сегодня!'); this.closeDailyModal(); return; }
-
-            // Проверка streak
-            if (this.data.lastDailyClaim) {
-                const lastDate = new Date(this.data.lastDailyClaim);
-                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                if (lastDate.toDateString() === yesterday.toDateString()) {
-                    this.data.dailyStreak = (this.data.dailyStreak || 0) + 1;
-                } else {
-                    this.data.dailyStreak = 1;
-                }
-            } else {
-                this.data.dailyStreak = 1;
-            }
-
-            const reward = DAILY_REWARDS[Math.min(this.data.dailyStreak - 1, DAILY_REWARDS.length - 1)];
-            this.data.coins += reward;
-            this.data.lastDailyClaim = new Date().toISOString();
-            this.save();
-            this.updateHeader();
-            this.closeDailyModal();
-            this.showToast(`🎁 +${reward} монет! День ${this.data.dailyStreak} подряд!`);
-            tg.HapticFeedback.notificationOccurred('success');
-
-            // Отправляем боту
-            tg.sendData(JSON.stringify({ action: 'claim_daily', streak: this.data.dailyStreak, user_id: this.data.userId }));
-        }
-
-        // ===== WALLET / TONCONNECT =====
-        // ===== WALLET / TONCONNECT =====
-        connectWallet() {
-            document.getElementById('tonConnectModal').classList.add('active');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        closeTonConnectModal() {
-            document.getElementById('tonConnectModal').classList.remove('active');
-        }
-        openWalletBot() {
-            tg.openTelegramLink('https://t.me/wallet');
-            this.showToast('💎 Откройте @wallet → скопируйте адрес');
-            this.closeTonConnectModal();
-            setTimeout(() => this.showWalletInputModal(), 1500);
-        }
-        openTonkeeper() {
-            tg.openLink('https://tonkeeper.com/');
-            this.showToast('🦊 Откройте Tonkeeper → скопируйте адрес');
-            this.closeTonConnectModal();
-            setTimeout(() => this.showWalletInputModal(), 1500);
-        }
-        showWalletInputModal() {
-            document.getElementById('walletInputModal').classList.add('active');
-            document.getElementById('walletInputField').value = this.data.walletAddress || '';
-            document.getElementById('walletInputError').style.display = 'none';
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        closeWalletInputModal() {
-            document.getElementById('walletInputModal').classList.remove('active');
-        }
-        submitWalletAddress() {
-            const addr = document.getElementById('walletInputField').value.trim();
-            const errorEl = document.getElementById('walletInputError');
-
-            if (!addr || !(addr.startsWith('UQ') || addr.startsWith('EQ'))) {
-                errorEl.style.display = 'block';
-                tg.HapticFeedback.notificationOccurred('error');
-                return;
-            }
-
-            errorEl.style.display = 'none';
-            this.data.walletAddress = addr;
-            this.data.walletConnected = true;
-            this.save();
-            this.renderProfile();
-            this.closeWalletInputModal();
-            this.showToast('💎 Кошелёк подключён!');
-            tg.HapticFeedback.notificationOccurred('success');
-
-            tg.sendData(JSON.stringify({ 
-                action: 'connect_wallet', 
-                wallet_address: addr, 
-                user_id: this.data.userId 
-            }));
-        }
-
-        // ===== LEADERBOARD =====
-        getLeaderboard() {
-            tg.sendData(JSON.stringify({ action: 'get_leaderboard', user_id: this.data.userId }));
-            this.showToast('🏆 Запрашиваем рейтинг...');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        // ===== SYNC =====
-        syncData() {
-            const payload = {
-                action: 'sync',
-                user_id: this.data.userId,
-                name: this.data.user,
-                totalEarned: this.data.totalEarned,
-                level: this.data.level,
-                coins: this.data.coins
-            };
-            tg.sendData(JSON.stringify(payload));
-            this.showToast('🔄 Синхронизация...');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        // ===== BASE GAME =====
-        regenEnergy() { const now = Date.now(); const diff = Math.floor((now - this.data.lastEnergyUpdate) / 1000); if (diff > 0) { this.data.energy = Math.min(this.data.maxEnergy, this.data.energy + diff * 2); this.data.lastEnergyUpdate = now; this.updateHeader(); } }
-
-        nav(screen) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('screen-' + screen).classList.add('active');
-            event.currentTarget.classList.add('active');
-            if (screen === 'profile') this.renderProfile();
-            if (screen === 'shop') this.renderShop();
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        updateHeader() {
-            document.getElementById('hCoins').textContent = this.formatNumber(this.data.coins);
-            document.getElementById('hEnergy').textContent = Math.floor(this.data.energy);
-            document.getElementById('hXP').textContent = this.data.level;
-        }
-        formatNumber(n) { if (n >= 1e6) return (n/1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n/1e3).toFixed(1) + 'K'; return Math.floor(n).toString(); }
-
-        renderMap() {
-            const grid = document.getElementById('mapZones'); grid.innerHTML = '';
-            ZONES.forEach(zone => {
-                const zd = this.data.zones[zone.id];
-                const card = document.createElement('div'); card.className = 'zone-card';
-                card.style.setProperty('--zone-color', zone.color);
-                card.innerHTML = `<div class="zone-icon">${zone.icon}</div><div class="zone-name">${zone.name}</div><div class="zone-level">Ур. ${zd.level}</div><div class="zone-income">+${this.getIncome(zone.id)}💰/клик</div>`;
-                card.onclick = () => this.enterZone(zone); grid.appendChild(card);
-            });
-        }
-
-        enterZone(zone) {
-            this.currentZone = zone;
-            document.getElementById('screen-map').classList.remove('active');
-            document.getElementById('screen-zone').classList.add('active');
-            document.getElementById('zoneDetail').classList.add('active');
-            document.getElementById('headerTitle').textContent = zone.icon + ' ' + zone.name;
-            const hero = document.getElementById('zoneHero');
-            hero.style.background = `linear-gradient(135deg, ${zone.color}33, rgba(0,0,0,0.3))`;
-            document.getElementById('zIcon').textContent = zone.icon;
-            document.getElementById('zName').textContent = zone.name;
-            document.getElementById('zDesc').textContent = zone.desc;
-            this.updateZoneUI(); tg.HapticFeedback.impactOccurred('medium');
-            tg.BackButton.show(); tg.BackButton.onClick(() => this.backToMap());
-        }
-        backToMap() {
-            this.currentZone = null;
-            document.getElementById('screen-zone').classList.remove('active');
-            document.getElementById('zoneDetail').classList.remove('active');
-            document.getElementById('screen-map').classList.add('active');
-            document.getElementById('headerTitle').textContent = '🌍 OMNIVERSE';
-            tg.BackButton.hide(); tg.HapticFeedback.impactOccurred('light');
-        }
-
-        updateZoneUI() {
-            if (!this.currentZone) return;
-            const zd = this.data.zones[this.currentZone.id];
-            const income = this.getIncome(this.currentZone.id);
-            const cost = this.getUpgradeCost(this.currentZone.id);
-            const progress = Math.min(100, (zd.level / this.currentZone.maxLevel) * 100);
-            document.getElementById('zLevel').textContent = zd.level;
-            document.getElementById('zIncome').textContent = income;
-            document.getElementById('zTotal').textContent = this.formatNumber(zd.totalEarned);
-            document.getElementById('zProgressText').textContent = Math.floor(progress) + '%';
-            document.getElementById('zProgressBar').style.width = progress + '%';
-            document.getElementById('workReward').textContent = income;
-            document.getElementById('upgradeCost').textContent = cost;
-            document.getElementById('btnWork').disabled = this.data.energy < 5;
-            document.getElementById('btnUpgrade').disabled = this.data.coins < cost || zd.level >= this.currentZone.maxLevel;
-            if (zd.level >= this.currentZone.maxLevel) document.getElementById('btnUpgrade').innerHTML = '✅ Максимальный уровень';
-        }
-        getIncome(zoneId) { const zone = ZONES.find(z => z.id === zoneId); const zd = this.data.zones[zoneId]; let income = Math.floor(zone.baseIncome * Math.pow(1.15, zd.level - 1)); if (this.boosts.income > 0) income *= 2; return income; }
-        getUpgradeCost(zoneId) { const zone = ZONES.find(z => z.id === zoneId); const zd = this.data.zones[zoneId]; return Math.floor(zone.baseCost * Math.pow(1.5, zd.level - 1)); }
-
-        work() {
-            if (!this.currentZone || this.data.energy < 5) return;
-            const zone = this.currentZone, zd = this.data.zones[zone.id];
-            const income = this.getIncome(zone.id);
-            const xpGain = Math.floor(income * 0.5 * (this.boosts.xp > 0 ? 2 : 1));
-            this.data.energy -= 5; this.data.coins += income; this.data.xp += xpGain;
-            this.data.totalClicks++; this.data.totalEarned += income; zd.clicks++; zd.totalEarned += income;
-            const xpNeeded = this.data.level * 100;
-            if (this.data.xp >= xpNeeded) {
-                this.data.level++; this.data.xp -= xpNeeded; this.data.maxEnergy += 10; this.data.energy = this.data.maxEnergy;
-                this.addLog(`🎉 Уровень повышен! Теперь вы ${this.data.level} уровень!`, 'xp');
-                tg.HapticFeedback.notificationOccurred('success'); this.showToast(`🎉 Уровень ${this.data.level}!`);
-            } else { tg.HapticFeedback.impactOccurred('light'); }
-            this.addLog(`+${income}💰 +${xpGain}⭐ (Энергия: ${Math.floor(this.data.energy)})`, 'gold');
-            this.updateZoneUI(); this.updateHeader(); this.save();
-            this.showFloatingText(event.clientX || window.innerWidth/2, event.clientY || window.innerHeight/2, `+${income}💰`);
-        }
-        upgrade() {
-            if (!this.currentZone) return; const cost = this.getUpgradeCost(this.currentZone.id); const zd = this.data.zones[this.currentZone.id];
-            if (this.data.coins >= cost && zd.level < this.currentZone.maxLevel) {
-                this.data.coins -= cost; zd.level++; this.data.totalUpgrades++;
-                this.addLog(`⬆️ Уровень повышен до ${zd.level}! Доход: +${this.getIncome(this.currentZone.id)}💰`);
-                tg.HapticFeedback.notificationOccurred('success'); this.updateZoneUI(); this.updateHeader(); this.save(); this.renderMap();
-            }
-        }
-        addLog(msg, type = '') { const log = document.getElementById('zoneLog'); const entry = document.createElement('div'); entry.className = 'log-entry ' + type; entry.textContent = msg; log.appendChild(entry); log.scrollTop = log.scrollHeight; while (log.children.length > 20) log.removeChild(log.firstChild); }
-        triggerRandomEvent() {
-            const events = [
-                { text: '💰 Бонус! Нашли клад: +50 монет', effect: () => { this.data.coins += 50; } },
-                { text: '⚡ Второе дыхание! +20 энергии', effect: () => { this.data.energy = Math.min(this.data.maxEnergy, this.data.energy + 20); } },
-                { text: '🎁 Подарок от спонсора! +100 XP', effect: () => { this.data.xp += 100; } },
-                { text: '🔥 Удачный день! Доход x2 на 30 сек', effect: () => { this.activateBoost('income', 30); } }
-            ];
-            const ev = events[Math.floor(Math.random() * events.length)];
-            ev.effect(); this.addLog(ev.text, 'gold'); this.showToast(ev.text); tg.HapticFeedback.notificationOccurred('success'); this.updateHeader();
-        }
-
-        // ===== SHOP & PAYMENTS =====
-        setCurrency(curr) {
-            this.shopCurrency = curr;
-            document.querySelectorAll('.currency-tab').forEach(t => t.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-            this.renderShop(); tg.HapticFeedback.impactOccurred('light');
-        }
-        renderShop() {
-            const grid = document.getElementById('shopGrid'); grid.innerHTML = '';
-            const curr = this.shopCurrency;
-            const symbols = { stars: '⭐', gram: '💎', salt: '🧂' };
-            const priceClasses = { stars: 'stars', gram: 'gram', salt: 'salt' };
-            SHOP_ITEMS.forEach(item => {
-                const price = item.prices[curr];
-                const div = document.createElement('div'); div.className = 'shop-item';
-                div.innerHTML = `<div class="shop-item-icon">${item.icon}</div><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-price ${priceClasses[curr]}">${symbols[curr]} ${price}</div><button class="shop-item-btn" onclick="game.buyItem('${item.id}', '${curr}')">Купить</button>`;
-                grid.appendChild(div);
-            });
-        }
-        buyItem(itemId, currency) {
-            const item = SHOP_ITEMS.find(i => i.id === itemId);
-            if (!item) return;
-            if (currency === 'stars') {
-                const payload = { action: 'buy_stars', item: itemId, user_id: this.data.userId };
-                tg.sendData(JSON.stringify(payload));
-                this.showToast('⭐ Отправляем запрос боту...');
-                tg.HapticFeedback.impactOccurred('light');
-            } else {
-                this.showPayModal(item, currency);
-            }
-        }
-        showPayModal(item, currency) {
-            this.pendingPayment = { item: item, currency: currency, comment: `OMNI_${this.data.userId || 'unknown'}_${item.id}_${Date.now()}` };
-            const modal = document.getElementById('payModal');
-            const isGram = currency === 'gram';
-            const symbol = isGram ? '💎 Gram' : '🧂 Salt';
-            const amount = item.prices[currency];
-            document.getElementById('payTitle').textContent = `Оплата ${symbol}`;
-            document.getElementById('paySubtitle').textContent = isGram ? 'Через @wallet или любой TON-кошелёк' : 'Через @wallet (jetton Salt)';
-            document.getElementById('payItem').textContent = item.name;
-            document.getElementById('payAmount').textContent = `${amount} ${isGram ? 'TON' : 'SALT'}`;
-            document.getElementById('payAddressRow').style.display = 'flex';
-            document.getElementById('payAddress').textContent = CONFIG.tonWalletAddress;
-            document.getElementById('payComment').style.display = 'block';
-            document.getElementById('payComment').textContent = `Comment: ${this.pendingPayment.comment}`;
-            document.getElementById('payPrimaryBtn').textContent = isGram ? '💎 Открыть @wallet' : '🧂 Открыть @wallet';
-            modal.classList.add('active');
-            tg.HapticFeedback.impactOccurred('medium');
-        }
-        confirmPayment() {
-            if (!this.pendingPayment) return;
-            const { item, currency, comment } = this.pendingPayment;
-            tg.openTelegramLink('https://t.me/wallet');
-            this.showToast('📋 Скопируйте адрес и comment из игры');
-            setTimeout(() => {
-                if (confirm('Проверить оплату?')) {
-                    tg.sendData(JSON.stringify({ action: 'check_ton', comment: comment, currency: currency, item: item.id }));
-                    this.showToast('🔍 Проверяем оплату...');
-                }
-            }, 500);
-            this.closePayModal();
-        }
-        closePayModal() { document.getElementById('payModal').classList.remove('active'); this.pendingPayment = null; }
-
-        // ===== PROFILE =====
-        renderProfile() {
-            const user = tg.initDataUnsafe?.user;
-            document.getElementById('pName').textContent = user?.first_name || this.data.user || 'Игрок';
-            document.getElementById('pAvatar').textContent = user?.first_name?.[0] || '👤';
-            const ranks = ['Новичок', 'Странник', 'Искатель', 'Мастер', 'Легенда', 'Бог Омниверса'];
-            document.getElementById('pRank').textContent = '🏆 ' + ranks[Math.min(Math.floor(this.data.level / 10), ranks.length - 1)];
-            document.getElementById('pClicks').textContent = this.formatNumber(this.data.totalClicks);
-            document.getElementById('pMoney').textContent = this.formatNumber(this.data.totalEarned);
-            document.getElementById('pUpgrades').textContent = this.formatNumber(this.data.totalUpgrades);
-
-            // Wallet
-            const walletConnected = this.data.walletConnected && this.data.walletAddress;
-            document.getElementById('walletDot').className = walletConnected ? 'dot' : 'dot offline';
-            document.getElementById('walletStatusText').textContent = walletConnected ? 'Кошелёк подключён' : 'Кошелёк не подключён';
-            const addrEl = document.getElementById('walletAddress');
-            if (walletConnected) { addrEl.style.display = 'block'; addrEl.textContent = this.data.walletAddress; }
-            else { addrEl.style.display = 'none'; }
-
-            // Referrals
-            document.getElementById('refCount').textContent = this.data.referralsCount || 0;
-            document.getElementById('refEarned').textContent = (this.data.referralEarned || 0) + '💰';
-
-            // Achievements
-            const grid = document.getElementById('achievementsGrid'); grid.innerHTML = '';
-            ACHIEVEMENTS.forEach(ach => {
-                const unlocked = this.data.achievements.includes(ach.id) || ach.req(this.data);
-                if (unlocked && !this.data.achievements.includes(ach.id)) { this.data.achievements.push(ach.id); this.showToast(`🏅 Достижение: ${ach.name}!`); tg.HapticFeedback.notificationOccurred('success'); }
-                const div = document.createElement('div'); div.className = 'achievement' + (unlocked ? '' : ' locked');
-                div.innerHTML = `<div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div>`;
-                grid.appendChild(div);
-            });
-        }
-
-        showToast(text) { const toast = document.getElementById('questToast'); toast.textContent = text; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
-        showFloatingText(x, y, text) { const el = document.createElement('div'); el.className = 'floating-text'; el.textContent = text; el.style.left = (x - 20) + 'px'; el.style.top = (y - 40) + 'px'; el.style.color = '#fbbf24'; document.body.appendChild(el); setTimeout(() => el.remove(), 1000); }
+  work() {
+    if(!this.currentZone || this.data.energy<5) return;
+    const z=this.currentZone, zd=this.data.zones[z.id];
+    const inc=this.getInc(z.id);
+    const xp=Math.floor(inc*.5*(this.boosts.xp>0?2:1));
+    this.data.energy-=5; this.data.coins+=inc; this.data.xp+=xp;
+    this.data.totalClicks++; this.data.totalEarned+=inc; zd.clicks++; zd.totalEarned+=inc;
+    const need=this.data.level*100;
+    if(this.data.xp>=need){
+      this.data.level++; this.data.xp-=need; this.data.maxEnergy+=10; this.data.energy=this.data.maxEnergy;
+      this.addLog(`🎉 Уровень ${this.data.level}!`,'xp');
+      tg.HapticFeedback.notificationOccurred('success');
+      this.showToast(`🎉 Уровень ${this.data.level}!`);
+    } else { tg.HapticFeedback.impactOccurred('light'); }
+    this.addLog(`+${inc}💰 +${xp}⭐ (⚡${Math.floor(this.data.energy)})`,'gold');
+    this.updateZoneUI(); this.updateHeader(); this.save();
+    const ex = event; this.floatText(ex?.clientX||window.innerWidth/2, ex?.clientY||window.innerHeight/2, `+${inc}💰`);
+  }
+  upgrade() {
+    if(!this.currentZone) return;
+    const cost=this.getUpgCost(this.currentZone.id); const zd=this.data.zones[this.currentZone.id];
+    if(this.data.coins>=cost && zd.level<this.currentZone.maxLevel){
+      this.data.coins-=cost; zd.level++; this.data.totalUpgrades++;
+      this.addLog(`⬆️ Ур. ${zd.level}! Доход +${this.getInc(this.currentZone.id)}💰`);
+      tg.HapticFeedback.notificationOccurred('success');
+      this.updateZoneUI(); this.updateHeader(); this.save(); this.renderMap();
     }
+  }
+  addLog(msg,type=''){ const log=document.getElementById('zone-log'); const e=document.createElement('div'); e.className='log-entry '+type; e.textContent=msg; log.appendChild(e); log.scrollTop=log.scrollHeight; while(log.children.length>20)log.removeChild(log.firstChild); }
+  randomEvent(){
+    const evs=[
+      {t:'💰 Бонус! +50 монет',f:()=>this.data.coins+=50},
+      {t:'⚡ +20 энергии',f:()=>this.data.energy=Math.min(this.data.maxEnergy,this.data.energy+20)},
+      {t:'🎁 +100 XP',f:()=>this.data.xp+=100},
+      {t:'🔥 Доход x2 на 30 сек',f:()=>this.activateBoost('income',30)}
+    ];
+    const e=evs[Math.floor(Math.random()*evs.length)]; e.f(); this.addLog(e.t,'gold'); this.showToast(e.t); tg.HapticFeedback.notificationOccurred('success'); this.updateHeader();
+  }
 
-    const game = new Game();
-    tg.onEvent('viewportChanged', () => tg.expand());
-    </script>
+  // --- Shop ---
+  setCurrency(c){ this.shopCur=c; document.querySelectorAll('.cur-tab').forEach(t=>t.classList.remove('active')); event.currentTarget.classList.add('active'); this.renderShop(); tg.HapticFeedback.impactOccurred('light'); }
+  renderShop(){
+    const g=document.getElementById('shop-grid'); g.innerHTML='';
+    const cur=this.shopCur, sym={stars:'⭐',gram:'💎',salt:'🧂'}, cls={stars:'stars',gram:'gram',salt:'salt'};
+    SHOP_ITEMS.forEach(it=>{
+      const p=it.prices[cur];
+      const el=document.createElement('div'); el.className='s-item';
+      el.innerHTML=`<div class="s-icon">${it.icon}</div><div class="s-name">${it.name}</div><div class="s-desc">${it.desc}</div><div class="s-price ${cls[cur]}">${sym[cur]} ${p}</div><button class="s-btn" onclick="game.buyItem('${it.id}','${cur}')">Купить</button>`;
+      g.appendChild(el);
+    });
+  }
+  buyItem(id,cur){
+    const it=SHOP_ITEMS.find(x=>x.id===id); if(!it)return;
+    if(cur==='stars'){
+      tg.sendData(JSON.stringify({action:'buy_stars',item:id,user_id:this.data.userId}));
+      this.showToast('⭐ Отправляем запрос боту...');
+    } else {
+      this.showPayModal(it,cur);
+    }
+  }
+
+  // --- Payment ---
+  showPayModal(it,cur){
+    this.pendingPay={item:it,currency:cur,comment:`OMNI_${this.data.userId||0}_${it.id}_${Date.now()}`};
+    const isGram=cur==='gram';
+    document.getElementById('pay-title').textContent=`Оплата ${isGram?'💎 Gram':'🧂 Salt'}`;
+    document.getElementById('pay-item').textContent=it.name;
+    document.getElementById('pay-amount').textContent=`${it.prices[cur]} ${isGram?'TON':'SALT'}`;
+    document.getElementById('pay-addr').textContent=CONFIG.tonWalletAddress;
+    document.getElementById('pay-comment-box').style.display='block';
+    document.getElementById('pay-comment-text').textContent=this.pendingPay.comment;
+    document.getElementById('pay-open-wallet').textContent=isGram?'💎 Открыть @wallet':'🧂 Открыть @wallet (Salt)';
+    this.openModal('payment');
+    tg.HapticFeedback.impactOccurred('medium');
+  }
+  openPayWallet(){
+    try{ tg.openTelegramLink('https://t.me/wallet'); }
+    catch(e1){ try{ tg.openLink('https://t.me/wallet'); } catch(e2){ this.showToast('Найдите @wallet в Telegram вручную'); } }
+    this.showToast('💎 Откройте @wallet → Отправить → вставьте адрес и comment');
+  }
+  copyPayAddr(){ this.copyText(CONFIG.tonWalletAddress,'Адрес скопирован!'); }
+  copyPayComment(){ if(!this.pendingPay)return; this.copyText(this.pendingPay.comment,'Comment скопирован!'); }
+  checkPayment(){
+    if(!this.pendingPay)return;
+    tg.sendData(JSON.stringify({action:'check_ton',comment:this.pendingPay.comment,currency:this.pendingPay.currency,item:this.pendingPay.item.id}));
+    this.showToast('🔍 Проверяем оплату...');
+    tg.HapticFeedback.impactOccurred('medium');
+    this.closeModal('payment');
+  }
+
+  // --- Wallet / TonConnect ---
+  showWalletConnect(){ this.openModal('wallet'); }
+  openWalletBot(){ this.closeModal('wallet'); try{tg.openTelegramLink('https://t.me/wallet');}catch(e){try{tg.openLink('https://t.me/wallet');}catch(e2){this.showToast('Найдите @wallet вручную');}} this.showToast('💎 Скопируйте адрес из @wallet'); setTimeout(()=>this.showWalletInput(),1200); }
+  openTonkeeper(){ this.closeModal('wallet'); try{tg.openLink('https://tonkeeper.com/');}catch(e){this.showToast('Откройте Tonkeeper вручную');} this.showToast('🦊 Скопируйте адрес из Tonkeeper'); setTimeout(()=>this.showWalletInput(),1200); }
+  showWalletInput(){ this.openModal('wallet-input'); document.getElementById('wallet-input-field').value=this.data.walletAddr||''; document.getElementById('wallet-input-error').style.display='none'; }
+  submitWallet(){
+    const addr=document.getElementById('wallet-input-field').value.trim();
+    const err=document.getElementById('wallet-input-error');
+    if(!addr || !(addr.startsWith('UQ')||addr.startsWith('EQ')) || addr.length<10){ err.style.display='block'; tg.HapticFeedback.notificationOccurred('error'); return; }
+    err.style.display='none';
+    this.data.walletAddr=addr; this.data.walletConnected=true; this.save(); this.renderProfile();
+    this.closeModal('wallet-input');
+    this.showToast('💎 Кошелёк подключён!');
+    tg.HapticFeedback.notificationOccurred('success');
+    tg.sendData(JSON.stringify({action:'connect_wallet',wallet_address:addr,user_id:this.data.userId}));
+  }
+
+  // --- Referral ---
+  checkReferral(){
+    const sp=tg.initDataUnsafe?.start_param;
+    if(sp && sp.startsWith('ref_') && !this.data.referralChecked){
+      this.data.referralChecked=true; this.save();
+      tg.sendData(JSON.stringify({action:'referral_check',ref:sp,user_id:this.data.userId}));
+      this.showToast('🎉 Реферальный бонус активирован!');
+    }
+  }
+  getRefLink(){ return `https://t.me/${CONFIG.botUsername}?start=ref_${this.data.userId||0}`; }
+  showRefModal(){ document.getElementById('ref-link').textContent=this.getRefLink(); this.openModal('ref'); }
+  copyRef(){ this.copyText(this.getRefLink(),'Ссылка скопирована!'); }
+  shareRef(){ const l=encodeURIComponent(this.getRefLink()); const t=encodeURIComponent('Присоединяйся к OMNIVERSE! 🌍'); try{tg.openTelegramLink(`https://t.me/share/url?url=${l}&text=${t}`);}catch(e){this.showToast('Скопируйте ссылку и отправьте другу');} }
+
+  // --- Daily ---
+  checkDaily(){
+    const today=new Date().toDateString();
+    const last=this.data.lastDaily ? new Date(this.data.lastDaily).toDateString() : null;
+    if(last!==today){
+      if(this.data.lastDaily){
+        const lastD=new Date(this.data.lastDaily);
+        const yest=new Date(); yest.setDate(yest.getDate()-1);
+        if(lastD.toDateString()!==yest.toDateString()) this.data.dailyStreak=0;
+      }
+      setTimeout(()=>this.showDailyModal(),2000);
+    }
+  }
+  showDailyModal(){
+    const s=this.data.dailyStreak||0;
+    const r=DAILY_REWARDS[Math.min(s,DAILY_REWARDS.length-1)];
+    const box=document.getElementById('daily-streak'); box.innerHTML='';
+    for(let i=0;i<7;i++){ const d=document.createElement('div'); d.className='str-day'; if(i<s)d.classList.add('done'); else if(i===s)d.classList.add('active'); d.textContent=i+1; box.appendChild(d); }
+    document.getElementById('daily-reward').textContent=`+${r}💰`;
+    this.openModal('daily');
+  }
+  claimDaily(){
+    const today=new Date().toDateString();
+    const last=this.data.lastDaily?new Date(this.data.lastDaily).toDateString():null;
+    if(last===today){this.showToast('🎁 Уже забрали сегодня!'); this.closeModal('daily'); return;}
+    if(this.data.lastDaily){ const ld=new Date(this.data.lastDaily); const y=new Date(); y.setDate(y.getDate()-1); if(ld.toDateString()===y.toDateString()) this.data.dailyStreak=(this.data.dailyStreak||0)+1; else this.data.dailyStreak=1; }
+    else this.data.dailyStreak=1;
+    const r=DAILY_REWARDS[Math.min(this.data.dailyStreak-1,DAILY_REWARDS.length-1)];
+    this.data.coins+=r; this.data.lastDaily=new Date().toISOString(); this.save(); this.updateHeader();
+    this.closeModal('daily');
+    this.showToast(`🎁 +${r} монет! День ${this.data.dailyStreak}`);
+    tg.HapticFeedback.notificationOccurred('success');
+    tg.sendData(JSON.stringify({action:'claim_daily',streak:this.data.dailyStreak,user_id:this.data.userId}));
+  }
+
+  // --- Leaderboard & Sync ---
+  syncData(){ tg.sendData(JSON.stringify({action:'sync',user_id:this.data.userId,name:this.data.user,totalEarned:this.data.totalEarned,level:this.data.level,coins:this.data.coins})); this.showToast('🔄 Синхронизация...'); }
+  getLeaderboard(){ tg.sendData(JSON.stringify({action:'get_leaderboard',user_id:this.data.userId})); this.showToast('🏆 Запрашиваем рейтинг...'); }
+
+  // --- Profile ---
+  renderProfile(){
+    const u=tg.initDataUnsafe?.user;
+    document.getElementById('p-name').textContent=u?.first_name||this.data.user||'Игрок';
+    document.getElementById('p-ava').textContent=(u?.first_name?.[0])||'👤';
+    const ranks=['Новичок','Странник','Искатель','Мастер','Легенда','Бог Омниверса'];
+    document.getElementById('p-rank').textContent='🏆 '+ranks[Math.min(Math.floor(this.data.level/10),ranks.length-1)];
+    document.getElementById('p-clicks').textContent=this.fmt(this.data.totalClicks);
+    document.getElementById('p-money').textContent=this.fmt(this.data.totalEarned);
+    document.getElementById('p-upgs').textContent=this.fmt(this.data.totalUpgrades);
+    const wCon=this.data.walletConnected && this.data.walletAddr;
+    document.getElementById('w-dot').className='w-dot'+(wCon?'':' off');
+    document.getElementById('w-status').textContent=wCon?'Кошелёк подключён':'Кошелёк не подключён';
+    const wa=document.getElementById('w-addr');
+    if(wCon){wa.style.display='block'; wa.textContent=this.data.walletAddr;}
+    else{wa.style.display='none';}
+    document.getElementById('r-count').textContent=this.data.referralsCount||0;
+    document.getElementById('r-earn').textContent=(this.data.referralEarned||0)+'💰';
+    const ag=document.getElementById('ach-grid'); ag.innerHTML='';
+    ACHIEVEMENTS.forEach(a=>{
+      const un=this.data.achievements.includes(a.id)||a.req(this.data);
+      if(un && !this.data.achievements.includes(a.id)){this.data.achievements.push(a.id); this.showToast('🏅 '+a.name); tg.HapticFeedback.notificationOccurred('success');}
+      const d=document.createElement('div'); d.className='ach'+(un?'':' locked');
+      d.innerHTML=`<div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div>`;
+      ag.appendChild(d);
+    });
+  }
+
+  // --- Utils ---
+  openModal(id){ document.getElementById('modal-'+id).classList.add('active'); }
+  closeModal(id){ document.getElementById('modal-'+id).classList.remove('active'); }
+  showToast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2800); }
+  floatText(x,y,t){ const el=document.createElement('div'); el.className='float'; el.textContent=t; el.style.left=(x-20)+'px'; el.style.top=(y-36)+'px'; el.style.color='#fbbf24'; document.body.appendChild(el); setTimeout(()=>el.remove(),900); }
+  copyText(text,msg){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=>{this.showToast('📋 '+msg); tg.HapticFeedback.impactOccurred('light');}).catch(()=>this.fallbackCopy(text,msg));
+    } else { this.fallbackCopy(text,msg); }
+  }
+  fallbackCopy(text,msg){
+    const ta=document.createElement('textarea'); ta.value=text; ta.style.cssText='position:fixed;opacity:0;pointer-events:none;'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); this.showToast('📋 '+msg); } catch(e){ this.showToast('Скопируйте вручную: '+text.substring(0,20)+'...'); }
+    document.body.removeChild(ta);
+  }
+}
+
+const game = new Game();
+tg.onEvent('viewportChanged', ()=>tg.expand());
+</script>
 </body>
 </html>
